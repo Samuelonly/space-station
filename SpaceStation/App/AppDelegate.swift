@@ -71,9 +71,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func performStatusItemClick() {
         let event = NSApp.currentEvent
-        // Right-click -> Settings (self-developed).
+        // Right-click -> context menu (Settings + Capture entry, §阶段三).
         if event?.type == .rightMouseUp || event?.type == .rightMouseDown {
-            SettingsWindowController.shared.show(state: stationState)
+            let menu = NSMenu()
+            let capture = NSMenuItem(title: "截图 / 标注", action: #selector(startCapture), keyEquivalent: "")
+            capture.target = self
+            menu.addItem(capture)
+            let captureTranslate = NSMenuItem(title: "截图并原图翻译", action: #selector(startCaptureTranslate), keyEquivalent: "")
+            captureTranslate.target = self
+            menu.addItem(captureTranslate)
+            menu.addItem(NSMenuItem.separator())
+            let settings = NSMenuItem(title: "设置…", action: #selector(openSettings), keyEquivalent: "")
+            settings.target = self
+            menu.addItem(settings)
+            // 直接弹出，避免给 button 挂 menu 后 performClick 再次触发本方法（递归）。
+            if let button = statusItem.button {
+                menu.popUp(positioning: nil, at: NSPoint(x: 0, y: button.bounds.height + 4), in: button)
+            }
             return
         }
 
@@ -91,6 +105,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         togglePanel()
+    }
+
+    @objc private func openSettings() {
+        SettingsWindowController.shared.show(state: stationState)
+    }
+
+    /// 阶段三：全屏框选 → 标注 → 入库。截图结果作为图片卡插入 History。
+    @objc private func startCapture() {
+        Task { @MainActor in
+            _ = await CaptureIntegration.captureToHistory()
+        }
+    }
+
+    /// 阶段三：全屏框选 → 原图 OCR + 翻译 → 磨砂覆盖层展示。
+    @objc private func startCaptureTranslate() {
+        Task { @MainActor in
+            guard let result = await CaptureService.shared.captureRegion() else { return }
+            await TranslateOverlayController.shared.translate(image: result.image)
+        }
     }
 
     @objc private func togglePanel() {
