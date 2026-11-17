@@ -3,7 +3,7 @@ import Foundation
 
 /// Content kind used by the Action registry and prediction (HTML §21.7).
 /// The prototype uses a `c.type` string (text/url/image/...); we derive it from
-/// Maccy's `contents: [HistoryItemContent]` UTI values instead of storing a
+/// the `contents: [HistoryItemContent]` UTI values instead of storing a
 /// duplicate field. Pure function → independently testable.
 enum ClipKind: String, Sendable, CaseIterable {
     case text, url, image, video, file, code, note

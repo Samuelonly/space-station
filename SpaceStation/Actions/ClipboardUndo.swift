@@ -1,14 +1,14 @@
 import AppKit
 import Foundation
 
-// Self-developed Clipboard Undo (HTML §19.3 / §21.9, from ClipBuddy).
+// Self-developed Clipboard Undo (HTML §19.3 / §21.9).
 // The prototype keeps a `CLIP_HISTORY` array of copied strings; ⌘⌥Z pops the
 // latest and restores the previous one to the clipboard. Our version stores a
 // snapshot of each captured clip (all UTI representations, not just text) so
 // undo restores rich content too, and caps the stack at 100.
 //
 // Re-entrancy: writing the restored value back to NSPasteboard advances
-// changeCount, which makes the Maccy capture chain fire `onNewCopy` again.
+// changeCount, which makes the capture chain fire `onNewCopy` again.
 // `shouldSuppressCapture()` is consumed exactly once at the capture hook so
 // the restore neither creates a duplicate card nor records itself as a step.
 

@@ -1,10 +1,10 @@
 import AppKit
 import Carbon.HIToolbox
 
-// Verbatim capture port of refs/Maccy/Maccy/Clipboard.swift (commit f0b571e).
+// Pasteboard capture engine — see THIRD_PARTY_LICENSES for the MIT engine-base attribution.
 // Pins (documented):
 //  - `Defaults[.x]` -> `SS.x`                 (config helper, no SPM)
-//  - `.fromMaccy`   -> `.fromStation`          (our marker type)
+//  - source marker namespaced to this app
 //  - `AppState.shared.history` -> `History.shared`
 //  - `Sauce` / `KeyChord` / `KeyboardLayout` in paste() -> local V-keycode
 //    (keyboard 底座 is M4; see HTML §21.5.5). Everything else — change-count
@@ -213,7 +213,7 @@ final class Clipboard {
         return types.isDisjoint(with: enabledTypes) || !types.isDisjoint(with: ignored)
     }
 
-    // :250-256 — Maccy's ignoredApps / ignoreAllAppsExceptListed verbatim.
+    // Ignored-app filtering (ignoreApps / ignoreAllAppsExceptListed).
     // Bypassed when secret sources are opted in (§19.6).
     private func shouldIgnore(_ sourceAppBundle: String) -> Bool {
         guard !SS.includeSecretSources else { return false }

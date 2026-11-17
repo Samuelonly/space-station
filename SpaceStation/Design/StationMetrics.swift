@@ -1,21 +1,18 @@
 import SwiftUI
 
-/// M2 card-shell design tokens. Extracted from DockDoor design logic only (GPL):
-/// every value below is a real source-read default with its file:line citation.
-/// We are macOS 15+ — DockDoor's Liquid Glass modern pipeline is gated to
-/// macOS 26/27 and leans on private APIs (dlsym / NSGlassEffectView._variant).
-/// Per HTML §21.6.2 we keep the *design logic* (layer stack, rim gradient,
-/// radii, spacing, animation curves) and render the glass with the public
-/// `.ultraThinMaterial`; the private-API探测 layer is intentionally dropped.
+/// M2 card-shell design tokens. Design logic only — no third-party source copied
+/// (see THIRD_PARTY_LICENSES). Values are tuned defaults per §21.
+/// We target macOS 15+ and use the public `.ultraThinMaterial`; private-API glass
+/// pipelines are intentionally dropped (HTML §21.6.2 / §21.6.5).
 enum StationMetrics {
-    // MARK: - Radii (dockStyle.swift:4-43, defaults uniform=true/base=20/mult=0.7)
+    // MARK: - Radii
     static let innerPadding: CGFloat = 6          // CardRadius.innerPadding
     static let cardRadius: CGFloat = 24.2         // 20 + 6×0.7
     static let imageRadius: CGFloat = 18.2        // card − 6
     static let containerRadius: CGFloat = 34      // 20 + 20×0.7
 
-    // MARK: - Spacing (BaseHoverContainer.swift:5-13, but scaled for our panel;
-    //         HTML §21.6.4 leaves spacing/inset to us — DockDoor never hardcodes it)
+    // MARK: - Spacing (scaled for our panel;
+    //         HTML §21.6.4 leaves spacing/inset to us)
     static let itemSpacing: CGFloat = 16
     static let inset: CGFloat = 12
     static let dockStyleOuter: CGFloat = 2

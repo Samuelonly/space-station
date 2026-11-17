@@ -1,11 +1,11 @@
 import SwiftUI
 
-/// M2 glass primitives — design logic extracted from DockDoor (GPL), rewritten
-/// in our own SwiftUI without copying GPL source. macOS 15 uses the public
-/// `.ultraThinMaterial`; DockDoor's private NSGlassEffectView pipeline is
-/// deliberately dropped (HTML §21.6.2 / §21.6.5).
+/// M2 glass primitives — design logic only, rewritten in our own SwiftUI with
+/// no third-party source copied (see THIRD_PARTY_LICENSES). macOS 15 uses the
+/// public `.ultraThinMaterial`; private-API effect pipelines are deliberately
+/// dropped (HTML §21.6.2 / §21.6.5).
 
-// MARK: - borderedBackground (Extensions/View.swift:14-25)
+// MARK: - borderedBackground
 extension View {
     func borderedBackground(
         _ style: some ShapeStyle,
@@ -18,9 +18,9 @@ extension View {
     }
 }
 
-// MARK: - Glass surface (BlurView.swift:74-108 fallback branch)
-/// A rounded/capsule glass fill. On macOS 15 we use the system material,
-/// which is exactly DockDoor's fallback for < macOS 26.
+// MARK: - Glass surface
+/// A rounded/capsule glass fill. On macOS 15 we use the system material
+/// (the public fallback path for older OS versions).
 struct GlassSurface<S: InsettableShape>: View {
     let shape: S
     var tintOpacity: CGFloat = StationMetrics.tintOpacity

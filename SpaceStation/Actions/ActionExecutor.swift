@@ -47,8 +47,8 @@ enum ActionExecutor {
     // MARK: - Handler registry
     private static let handlers: [String: (HistoryItem) -> Outcome] = [
         "copyall": { item in
-            // Reuse Maccy's copy(item) so all representations + source marker
-            // are preserved (Clipboard.swift:86-120) — don't flatten to string.
+            // Reuse copy(item) so all representations + source marker
+            // are preserved — don't flatten to string.
             Clipboard.shared.copy(item)
             let text = item.text ?? item.title
             return Outcome(result: Result(title: "已复制", detail: text.shortened(to: 60), copiableText: text), effect: .none)

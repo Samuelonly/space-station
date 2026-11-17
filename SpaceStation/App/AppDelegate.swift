@@ -8,11 +8,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private lazy var statusItem: NSStatusItem = {
         let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        statusItem.behavior = .removalAllowed          // Maccy AppDelegate.swift:13
+        statusItem.behavior = .removalAllowed
         statusItem.button?.image = Self.icon(for: .normal)
         statusItem.button?.imagePosition = .imageLeft
         // Right-click must also reach our action so we can open Settings
-        // (self-developed, from ClipMan — Maccy has no right-click handler, §21.10).
+        // (self-developed; right-click handler is our addition, §21.10).
         statusItem.button?.sendAction(on: [.leftMouseUp, .rightMouseUp])
         statusItem.button?.target = self
         statusItem.button?.action = #selector(performStatusItemClick)
@@ -66,12 +66,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return true
     }
 
-    // MARK: - Status item gestures (Maccy AppDelegate.swift:185-202, verbatim
-    // modifier logic; right-click / pill background are our additions §21.10).
+    // MARK: - Status item gestures (modifier logic per §21.10;
+    // right-click / pill background are our additions).
 
     @objc private func performStatusItemClick() {
         let event = NSApp.currentEvent
-        // Right-click -> Settings (self-developed; Maccy has no such handler).
+        // Right-click -> Settings (self-developed).
         if event?.type == .rightMouseUp || event?.type == .rightMouseDown {
             SettingsWindowController.shared.show(state: stationState)
             return

@@ -4,24 +4,21 @@ import os
 
 // MARK: - Pin change: config / logging / string helpers
 //
-// Maccy's engine reads settings through the SPM `Defaults` package and logs
-// through `swift-log`. We replace those two with tiny local equivalents so the
-// ported algorithms below stay byte-for-byte close to the source while the
-// project keeps zero SPM dependencies. Call sites changed from `Defaults[.x]`
-// to `SS.x` and from `Logger(label:)` to our `Logger` — nothing else.
-// Source: refs/Maccy/Maccy/Extensions/Defaults.Keys+Names.swift (commit f0b571e).
+// Config / logging / string helpers. Settings and logging use tiny local
+// equivalents so the project keeps zero SPM dependencies; call sites use `SS.x`
+// and our `Logger`. See THIRD_PARTY_LICENSES for engine-base attribution.
 
 enum PinPosition: String {
     case top, bottom
 }
 
-/// Settings namespace backed by UserDefaults. Keys are namespaced so an
-/// installed Maccy cannot collide with us.
+/// Settings namespace backed by UserDefaults. Keys are namespaced to avoid
+/// collisions with other apps.
 enum SS {
     nonisolated(unsafe) private static let ud = UserDefaults.standard
     private static func key(_ name: String) -> String { "com.samuelonly.spacestation.\(name)" }
 
-    // Clipboard.swift:56 — Timer interval. Fixed for M1 (settings UI is M4).
+    // Timer interval. Fixed for M1 (settings UI is M4).
     static var clipboardCheckInterval: Double { 0.5 }
 
     // Defaults.Keys+Names.swift:30-32 — supported item types.
@@ -78,8 +75,8 @@ enum SS {
         set { ud.set(newValue, forKey: key("ignoreOnlyNextEvent")) }
     }
 
-    // Our enhancement (HTML §21.5.3): Maccy recognizes Handoff instead of
-    // ignoring it. We add the explicit ignore switch the PRD asks for.
+    // Our enhancement (HTML §21.5.3): add the explicit Handoff ignore switch
+    // the PRD asks for.
     static var ignoreHandoff: Bool {
         get {
             if ud.object(forKey: key("ignoreHandoff")) == nil { return true }
@@ -163,7 +160,7 @@ struct Logger {
     }
 }
 
-// Source: refs/Maccy/.../Extensions/NSPasteboard.PasteboardType+Types.swift:4-41
+// Pasteboard type identifiers — see THIRD_PARTY_LICENSES for attribution.
 nonisolated struct StorageType {
     static let files = StorageType(types: [.fileURL])
     static let images = StorageType(types: [.png, .tiff, .jpeg, .heic])
@@ -177,7 +174,7 @@ extension NSPasteboard.PasteboardType {
     static let heic = NSPasteboard.PasteboardType(rawValue: "public.heic")
     static let jpeg = NSPasteboard.PasteboardType(rawValue: "public.jpeg")
 
-    // Our own marker replaces Maccy's `.fromMaccy` (rawValue "org.p0deje.Maccy").
+    // Our own source marker (namespaced to this app).
     static let fromStation = NSPasteboard.PasteboardType(rawValue: "com.samuelonly.spacestation")
 
     // nspasteboard.org conventions.
@@ -187,7 +184,7 @@ extension NSPasteboard.PasteboardType {
     static let transient = NSPasteboard.PasteboardType(rawValue: "org.nspasteboard.TransientType")
     static let modified = NSPasteboard.PasteboardType(rawValue: "x.nspasteboard.ModifiedType")
 
-    // Handoff / Universal Clipboard — Maccy only recognizes it; we also ignore it.
+    // Handoff / Universal Clipboard — recognized here for explicit ignoring.
     static let universalClipboard = NSPasteboard.PasteboardType(rawValue: "com.apple.is-remote-clipboard")
 
     static let microsoftObjectLink = NSPasteboard.PasteboardType(rawValue: "com.microsoft.ObjectLink")
@@ -202,7 +199,7 @@ extension NSPasteboard.PasteboardType {
     static let notesRichText = NSPasteboard.PasteboardType(rawValue: "com.apple.notes.richtext")
 }
 
-// Source: refs/Maccy/.../Extensions/Dictionary+RemoveItem.swift
+// Dictionary helper — see THIRD_PARTY_LICENSES for attribution.
 extension Dictionary {
     mutating func removeValues(where isIncluded: (Value) -> Bool) {
         for (key, value) in self where isIncluded(value) {
@@ -211,7 +208,7 @@ extension Dictionary {
     }
 }
 
-// Source: refs/Maccy/.../Extensions/String+Shortened.swift:1-9
+// String truncation helper — see THIRD_PARTY_LICENSES for attribution.
 extension String {
     func shortened(to maxLength: Int) -> String {
         guard let end = index(startIndex, offsetBy: maxLength, limitedBy: endIndex), end != endIndex else {
@@ -221,7 +218,7 @@ extension String {
     }
 }
 
-// Source: refs/Maccy/.../Extensions/String+UnsafeForTitleLayout.swift:14-38
+// Title-layout string helper — see THIRD_PARTY_LICENSES for attribution.
 extension String {
     private static let scalarsUnsafeForTitleLayout: Set<Unicode.Scalar> = ["\u{FFFC}"]
 

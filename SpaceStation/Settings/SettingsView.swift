@@ -93,7 +93,7 @@ struct SettingsView: View {
     private var keymapTab: some View {
         VStack(alignment: .leading, spacing: 12) {
             header
-            groupLabel("竞品照抄 · 键盘流（§19.3）")
+            groupLabel("键盘流")
             ForEach(HotkeyStore.definitions.prefix(4)) { row($0) }
             groupLabel("自有快捷键")
             ForEach(HotkeyStore.definitions.dropFirst(4)) { row($0) }

@@ -3,9 +3,7 @@ import Foundation
 import Observation
 import SwiftData
 
-// Port of refs/Maccy/Maccy/Observables/History.swift (commit f0b571e).
-// Kept verbatim: load :125-142, insert/save :151-157, add + dedup :159-222,
-// clear/delete :237-341, findSimilarItem/isModified :508-523, limit :144-149.
+// Panel history store — see THIRD_PARTY_LICENSES for the MIT engine-base attribution.
 // Pin changes (M1 = engine only, no UI):
 //  - `HistoryItemDecorator` / `PinManager` / `Search` / `Throttler` / `Popup`
 //    / `Navigator` / `KeyShortcut` / `Notifier` are UI-layer; replaced with a
@@ -19,7 +17,7 @@ final class History {
     let logger = Logger(label: "com.samuelonly.spacestation")
     private let sorter = Sorter()
 
-    /// Source of truth for the panel. Replaces Maccy's decorator collection.
+    /// Source of truth for the panel.
     private(set) var items: [HistoryItem] = []
 
     /// Paste stack state — M1 only needs the interrupt signal (:461-467).

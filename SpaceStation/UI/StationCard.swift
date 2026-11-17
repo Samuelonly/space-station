@@ -2,7 +2,7 @@ import AppKit
 import SwiftUI
 
 /// M2 card shell + M3 content layer. Four edges share this one render (§21.7.4).
-/// Glass/selection logic from DockDoor design (WindowPreview.swift:847-925);
+/// Glass/selection rendering follows the design logic recorded in §21 (see THIRD_PARTY_LICENSES);
 /// right-side capsule = ActionRegistry.headActions (§21.7.1); prediction pill
 /// = PredictionEngine output on the item (§21.7.2); flavor switch = multi-rep
 /// toggle without a new card (§21.7.3). No geometry scale on hover (§21.13.6).

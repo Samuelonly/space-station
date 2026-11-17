@@ -40,10 +40,10 @@ final class HotkeyStore: ObservableObject {
 
     /// Order + defaults must match space-station.html:2204-2214 exactly.
     static let definitions: [HotkeyDefinition] = [
-        .init(id: .paste,   label: "复制即粘贴",      def: "Alt+Enter",       source: "Maccy / ClipMan", proto: true),
-        .init(id: .plain,   label: "无格式粘贴",      def: "Alt+Shift+Enter", source: "Maccy",           proto: true),
-        .init(id: .pick,    label: "前 9 项直选",     def: "Meta+1",          source: "Maccy",           proto: true),
-        .init(id: .undo,    label: "Clipboard Undo",  def: "Meta+Alt+Z",      source: "ClipBuddy",       proto: true),
+        .init(id: .paste,   label: "复制即粘贴",      def: "Alt+Enter",       source: "通用",            proto: true),
+        .init(id: .plain,   label: "无格式粘贴",      def: "Alt+Shift+Enter", source: "通用",            proto: true),
+        .init(id: .pick,    label: "前 9 项直选",     def: "Meta+1",          source: "通用",            proto: true),
+        .init(id: .undo,    label: "Clipboard Undo",  def: "Meta+Alt+Z",      source: "通用",            proto: true),
         .init(id: .quick,   label: "超级 Quick Look", def: "Space",           source: "自有",            proto: false),
         .init(id: .split,   label: "Split 大爆炸",    def: "KeyS",            source: "自有",            proto: false),
         .init(id: .fav,     label: "Favorite 收藏",   def: "KeyF",            source: "自有",            proto: false),

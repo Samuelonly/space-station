@@ -1,9 +1,9 @@
 import AppKit
 import SwiftUI
 
-/// Floating, non-activating panel. M0 keeps only the MIT engine base's window traits:
+/// Floating, non-activating panel. M0 keeps only the engine base's window traits:
 /// status-bar level, keyable, no traffic lights, auto-close on focus loss.
-/// The DockDoor card shell and our content layer arrive in M2/M3.
+/// The card shell and content layer arrive in M2/M3.
 @MainActor
 final class FloatingPanel<Content: View>: NSPanel, NSWindowDelegate {
     private(set) var isPresented = false

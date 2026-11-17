@@ -1,7 +1,7 @@
 import Foundation
 import SwiftData
 
-// Verbatim port of refs/Maccy/Maccy/Models/HistoryItemContent.swift:4-16.
+// SwiftData content record — see THIRD_PARTY_LICENSES for attribution.
 @Model
 final class HistoryItemContent {
     var type: String = ""

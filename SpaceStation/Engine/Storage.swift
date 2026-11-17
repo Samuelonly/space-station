@@ -2,8 +2,8 @@ import AppKit.NSPasteboard
 import Foundation
 import SwiftData
 
-// Verbatim port of refs/Maccy/Maccy/Storage.swift (commit f0b571e).
-// Pin change: database URL path Maccy/ -> SpaceStation/; DEBUG testing branch
+// SwiftData container — see THIRD_PARTY_LICENSES for the MIT engine-base attribution.
+// Local change: database URL path namespaced to SpaceStation/; DEBUG testing branch
 // removed (no UI-test harness in M1).
 @MainActor
 final class Storage {

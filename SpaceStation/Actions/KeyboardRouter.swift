@@ -2,8 +2,8 @@ import AppKit
 import Foundation
 
 // Panel-local keyboard flow (HTML §21.9 / §19.3, prototype lines 2690-2769).
-// Maccy's global hotkey registration is dead code (GlobalHotKey.swift:16 is
-// commented, §21.5.5); these competitor hotkeys are all "panel open + selected
+// Global hotkey registration is intentionally avoided (§21.5.5); these hotkeys
+// are all "panel open + selected
 // item" operations, so a local keyDown monitor on the key panel is the faithful
 // and permission-free equivalent. Returning nil from the monitor consumes the
 // key; returning the event lets the system / focused control handle it.

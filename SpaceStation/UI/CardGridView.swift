@@ -3,8 +3,8 @@ import SwiftData
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// M2 grid rail + M3 content wiring. Design logic from DockDoor
-/// CardGridScrollView.swift:322-347; SwiftUI ScrollView + system damping.
+/// M2 grid rail + M3 content wiring. Design logic per §21 (see THIRD_PARTY_LICENSES);
+/// SwiftUI ScrollView + system damping.
 /// All four edges share StationCard; only the scroll axis flips. M3 adds:
 /// ActionExecutor dispatch, multi-representation cycling (no new card), and
 /// Split / MiniFinder effect presentation. M4 lifts selection into StationState

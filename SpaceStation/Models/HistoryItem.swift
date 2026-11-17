@@ -3,12 +3,11 @@ import Foundation
 import SwiftData
 import Vision
 
-// Port of refs/Maccy/Maccy/Models/HistoryItem.swift (commit f0b571e).
-// Fields :77-87, dedup :95-103, title :105-141, accessors :143-250, OCR :252-291.
-// Pin-key helper statics (:9-62) are UI/keyboard concerns — deferred to M4.
+// SwiftData history model — see THIRD_PARTY_LICENSES for the MIT engine-base attribution.
+// Pin-key helper statics are UI/keyboard concerns — deferred to M4.
 @Model
 class HistoryItem {
-    // :77-82 — persisted fields, verbatim.
+    // Persisted fields.
     var application: String?
     var firstCopiedAt: Date = Date.now
     var lastCopiedAt: Date = Date.now

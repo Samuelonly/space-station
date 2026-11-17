@@ -1,7 +1,7 @@
 import AppKit
 
-// Port of refs/Maccy/Maccy/Sorter.swift (commit f0b571e).
-// Pin change: Maccy's `PinOrder` (UserDefaults-backed) is simplified to a
+// History sorter — see THIRD_PARTY_LICENSES for the MIT engine-base attribution.
+// Local change: `PinOrder` (UserDefaults-backed) is simplified to a
 // deterministic alphabetical pin order — pin reordering UI is M4.
 // The three sort keys and the pinned/unpinned split are verbatim (:26-65).
 final class Sorter {
