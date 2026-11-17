@@ -1,0 +1,497 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		04675B6E6B3D172037ABFF60 /* EdgeIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B05ABD00B0FDC4BFA6298FA /* EdgeIndicator.swift */; };
+		05255B1948746885220047E0 /* Sorter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 874BDA5E171A08EF8F9F6D56 /* Sorter.swift */; };
+		0934244D4A3990A5B77CDED9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAAA59E5825FF2EAEBD42150 /* AppDelegate.swift */; };
+		09D40A3402BC8C3629351B72 /* EdgePosition.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BFF6244C064FAC1965D70C7 /* EdgePosition.swift */; };
+		14EE98D76E801FD330F961F1 /* PurifyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F5A624AF03842E9304D3429 /* PurifyView.swift */; };
+		17B1A04F81ABFADE6AB4F3B0 /* FloatingPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D7C9F18D29CADF8E4C4ABF8 /* FloatingPanel.swift */; };
+		1D9D532354906C0DCD8BD428 /* KeyboardRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7DFF25B2B2C00A33769EEEB /* KeyboardRouter.swift */; };
+		1DC2266DA77241F425E99074 /* NoteComposer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AA20DD8F3D8F89E7DB4208F /* NoteComposer.swift */; };
+		1FECC3612B387E51B7F275FB /* SpaceStationApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47B38A36DB38AE5B1B434245 /* SpaceStationApp.swift */; };
+		21C969A4269CF66C592C81B9 /* MiniFinder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E5A231BB88E6748B98B9F4D /* MiniFinder.swift */; };
+		2BFA6039F9922D40799C6C82 /* Clipboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = B02215FE5FADECE382E9B035 /* Clipboard.swift */; };
+		2D0E2DC07B65AB130699DF9A /* HistoryItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E57A9E4638D52F254DE7F85 /* HistoryItem.swift */; };
+		49DEE202B591C589BF1B0913 /* AuxPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A7CC9824CDF39D6B8165632 /* AuxPanel.swift */; };
+		4CA201D57354A69CA51F18B1 /* StationState.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFD053F9918507C5BB9F794E /* StationState.swift */; };
+		537645F5AE114AF03CFEC1AE /* HistoryItemContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC082AC778C19DF67DEEF1C4 /* HistoryItemContent.swift */; };
+		5810AE3ADAA4FB49C5F8BD73 /* QuickLookView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7C8DF47BDE524CB1B8333E8 /* QuickLookView.swift */; };
+		618B0BB04B2624396C9F11E3 /* SplitView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6435DDA4040C6587902D6E91 /* SplitView.swift */; };
+		679ECE8365882FA8050CC7F0 /* ClipKind.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90E03C30E158D3D2D6E07AC0 /* ClipKind.swift */; };
+		69E7EEAEBA8427BF34A032AE /* GlassComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5DD495CCAC33F7180A8249A8 /* GlassComponents.swift */; };
+		81C0F015695D0C2F5A03C68D /* StationMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0679DB2A88C9E8BAC94FACAE /* StationMetrics.swift */; };
+		969C89F3DB1ADEA37DFC86E7 /* FilterBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75A40EB04706751285238C43 /* FilterBar.swift */; };
+		97D3B794B74115A9E254D2F7 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D5A4FCE2C59E6C3742A4F65 /* SettingsView.swift */; };
+		ADC3E289DD4B8819ED20CB53 /* ThumbnailCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96C182FAFB8CDC27834F9906 /* ThumbnailCache.swift */; };
+		BAF9F257986300A6840648A8 /* PredictionEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D551FFA8062D6E0E93AB3C6 /* PredictionEngine.swift */; };
+		CA7DB22944F2ECAA768B3EAB /* NavBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = EDFCB85022D1D815FAC70276 /* NavBar.swift */; };
+		D3E09EE3F67444FFD5117F26 /* ActionExecutor.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4B659C560F61581278E3BAF /* ActionExecutor.swift */; };
+		D581451499000E95D1AD6DC5 /* CardGridView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DDF26AF5CFF95EB9EF1BA31 /* CardGridView.swift */; };
+		D678E7DE264BBBB3AE73604C /* Storage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FFF6A462C690A79D3A0EA2B /* Storage.swift */; };
+		DB05352077C90B589793930F /* Support.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D391071F7B247D423416CC4 /* Support.swift */; };
+		F0BE20F3F6B2FAAA661C430D /* History.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88062F13B9A1055E5B570835 /* History.swift */; };
+		F4A778DCF53839D9963E671B /* HotkeyStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21D5EF79ACA172C3998AC2D8 /* HotkeyStore.swift */; };
+		F925B67EF2DFD328D28D7A18 /* StationPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A24B6451F280C115189F94C9 /* StationPanel.swift */; };
+		F9F461EE86656E7F52311523 /* StationCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0710C7D582674592754CA177 /* StationCard.swift */; };
+		FE4360DEF187C9099B1DE4D8 /* Action.swift in Sources */ = {isa = PBXBuildFile; fileRef = 365425DD9FB4ACF29899C67C /* Action.swift */; };
+		FEC3108B71DF5677C6E18270 /* ClipboardUndo.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD90E2B71203C66B03F2253E /* ClipboardUndo.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		0679DB2A88C9E8BAC94FACAE /* StationMetrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StationMetrics.swift; sourceTree = "<group>"; };
+		0710C7D582674592754CA177 /* StationCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StationCard.swift; sourceTree = "<group>"; };
+		0E5A231BB88E6748B98B9F4D /* MiniFinder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MiniFinder.swift; sourceTree = "<group>"; };
+		21D5EF79ACA172C3998AC2D8 /* HotkeyStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyStore.swift; sourceTree = "<group>"; };
+		365425DD9FB4ACF29899C67C /* Action.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Action.swift; sourceTree = "<group>"; };
+		3B05ABD00B0FDC4BFA6298FA /* EdgeIndicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EdgeIndicator.swift; sourceTree = "<group>"; };
+		3DDF26AF5CFF95EB9EF1BA31 /* CardGridView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardGridView.swift; sourceTree = "<group>"; };
+		3E57A9E4638D52F254DE7F85 /* HistoryItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryItem.swift; sourceTree = "<group>"; };
+		47B38A36DB38AE5B1B434245 /* SpaceStationApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpaceStationApp.swift; sourceTree = "<group>"; };
+		4AA20DD8F3D8F89E7DB4208F /* NoteComposer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteComposer.swift; sourceTree = "<group>"; };
+		4D551FFA8062D6E0E93AB3C6 /* PredictionEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PredictionEngine.swift; sourceTree = "<group>"; };
+		4D7C9F18D29CADF8E4C4ABF8 /* FloatingPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingPanel.swift; sourceTree = "<group>"; };
+		5DD495CCAC33F7180A8249A8 /* GlassComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassComponents.swift; sourceTree = "<group>"; };
+		5FFF6A462C690A79D3A0EA2B /* Storage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Storage.swift; sourceTree = "<group>"; };
+		6435DDA4040C6587902D6E91 /* SplitView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplitView.swift; sourceTree = "<group>"; };
+		6D5A4FCE2C59E6C3742A4F65 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		75A40EB04706751285238C43 /* FilterBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterBar.swift; sourceTree = "<group>"; };
+		7A7CC9824CDF39D6B8165632 /* AuxPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuxPanel.swift; sourceTree = "<group>"; };
+		7FDD22E3BA894E3F055779C6 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		874BDA5E171A08EF8F9F6D56 /* Sorter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sorter.swift; sourceTree = "<group>"; };
+		88062F13B9A1055E5B570835 /* History.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = History.swift; sourceTree = "<group>"; };
+		8BFF6244C064FAC1965D70C7 /* EdgePosition.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EdgePosition.swift; sourceTree = "<group>"; };
+		8F5D5BE57DB007B1EC63273F /* SpaceStation.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SpaceStation.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		90E03C30E158D3D2D6E07AC0 /* ClipKind.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipKind.swift; sourceTree = "<group>"; };
+		96C182FAFB8CDC27834F9906 /* ThumbnailCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThumbnailCache.swift; sourceTree = "<group>"; };
+		9D391071F7B247D423416CC4 /* Support.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Support.swift; sourceTree = "<group>"; };
+		9F5A624AF03842E9304D3429 /* PurifyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PurifyView.swift; sourceTree = "<group>"; };
+		A24B6451F280C115189F94C9 /* StationPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StationPanel.swift; sourceTree = "<group>"; };
+		B02215FE5FADECE382E9B035 /* Clipboard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Clipboard.swift; sourceTree = "<group>"; };
+		B4B659C560F61581278E3BAF /* ActionExecutor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionExecutor.swift; sourceTree = "<group>"; };
+		B7C8DF47BDE524CB1B8333E8 /* QuickLookView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickLookView.swift; sourceTree = "<group>"; };
+		BAAA59E5825FF2EAEBD42150 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		BC082AC778C19DF67DEEF1C4 /* HistoryItemContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryItemContent.swift; sourceTree = "<group>"; };
+		E7DFF25B2B2C00A33769EEEB /* KeyboardRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardRouter.swift; sourceTree = "<group>"; };
+		EDFCB85022D1D815FAC70276 /* NavBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NavBar.swift; sourceTree = "<group>"; };
+		FD90E2B71203C66B03F2253E /* ClipboardUndo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardUndo.swift; sourceTree = "<group>"; };
+		FFD053F9918507C5BB9F794E /* StationState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StationState.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		13F46F7713181484D5570B29 /* SpaceStation */ = {
+			isa = PBXGroup;
+			children = (
+				7FDD22E3BA894E3F055779C6 /* Info.plist */,
+				7A0AC3DB657110D02BE7FBE7 /* Actions */,
+				82A244C179D558D13F4FBE93 /* App */,
+				FFD49D343638A7B07E5B614F /* Design */,
+				C38178BF4331435DC7AB95F2 /* Engine */,
+				AF1EF0AACBB253DA201A43D6 /* Models */,
+				6CF448CD87B048E8161F4E18 /* Settings */,
+				2C88939EBB4D29C64D878355 /* State */,
+				6FF3CE6FEEEC5F0EA84D85B2 /* UI */,
+			);
+			path = SpaceStation;
+			sourceTree = "<group>";
+		};
+		2C88939EBB4D29C64D878355 /* State */ = {
+			isa = PBXGroup;
+			children = (
+				88062F13B9A1055E5B570835 /* History.swift */,
+				FFD053F9918507C5BB9F794E /* StationState.swift */,
+			);
+			path = State;
+			sourceTree = "<group>";
+		};
+		6CF448CD87B048E8161F4E18 /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				6D5A4FCE2C59E6C3742A4F65 /* SettingsView.swift */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
+		6FF3CE6FEEEC5F0EA84D85B2 /* UI */ = {
+			isa = PBXGroup;
+			children = (
+				7A7CC9824CDF39D6B8165632 /* AuxPanel.swift */,
+				3DDF26AF5CFF95EB9EF1BA31 /* CardGridView.swift */,
+				3B05ABD00B0FDC4BFA6298FA /* EdgeIndicator.swift */,
+				75A40EB04706751285238C43 /* FilterBar.swift */,
+				4D7C9F18D29CADF8E4C4ABF8 /* FloatingPanel.swift */,
+				5DD495CCAC33F7180A8249A8 /* GlassComponents.swift */,
+				0E5A231BB88E6748B98B9F4D /* MiniFinder.swift */,
+				EDFCB85022D1D815FAC70276 /* NavBar.swift */,
+				4AA20DD8F3D8F89E7DB4208F /* NoteComposer.swift */,
+				9F5A624AF03842E9304D3429 /* PurifyView.swift */,
+				B7C8DF47BDE524CB1B8333E8 /* QuickLookView.swift */,
+				6435DDA4040C6587902D6E91 /* SplitView.swift */,
+				0710C7D582674592754CA177 /* StationCard.swift */,
+				A24B6451F280C115189F94C9 /* StationPanel.swift */,
+			);
+			path = UI;
+			sourceTree = "<group>";
+		};
+		7A0AC3DB657110D02BE7FBE7 /* Actions */ = {
+			isa = PBXGroup;
+			children = (
+				365425DD9FB4ACF29899C67C /* Action.swift */,
+				B4B659C560F61581278E3BAF /* ActionExecutor.swift */,
+				FD90E2B71203C66B03F2253E /* ClipboardUndo.swift */,
+				90E03C30E158D3D2D6E07AC0 /* ClipKind.swift */,
+				21D5EF79ACA172C3998AC2D8 /* HotkeyStore.swift */,
+				E7DFF25B2B2C00A33769EEEB /* KeyboardRouter.swift */,
+				4D551FFA8062D6E0E93AB3C6 /* PredictionEngine.swift */,
+			);
+			path = Actions;
+			sourceTree = "<group>";
+		};
+		82A244C179D558D13F4FBE93 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				BAAA59E5825FF2EAEBD42150 /* AppDelegate.swift */,
+				47B38A36DB38AE5B1B434245 /* SpaceStationApp.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		8BABD55EE989349E44740E36 = {
+			isa = PBXGroup;
+			children = (
+				13F46F7713181484D5570B29 /* SpaceStation */,
+				B748047F1CD0ABF7408942D0 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		AF1EF0AACBB253DA201A43D6 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				3E57A9E4638D52F254DE7F85 /* HistoryItem.swift */,
+				BC082AC778C19DF67DEEF1C4 /* HistoryItemContent.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		B748047F1CD0ABF7408942D0 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				8F5D5BE57DB007B1EC63273F /* SpaceStation.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		C38178BF4331435DC7AB95F2 /* Engine */ = {
+			isa = PBXGroup;
+			children = (
+				B02215FE5FADECE382E9B035 /* Clipboard.swift */,
+				874BDA5E171A08EF8F9F6D56 /* Sorter.swift */,
+				5FFF6A462C690A79D3A0EA2B /* Storage.swift */,
+				9D391071F7B247D423416CC4 /* Support.swift */,
+				96C182FAFB8CDC27834F9906 /* ThumbnailCache.swift */,
+			);
+			path = Engine;
+			sourceTree = "<group>";
+		};
+		FFD49D343638A7B07E5B614F /* Design */ = {
+			isa = PBXGroup;
+			children = (
+				8BFF6244C064FAC1965D70C7 /* EdgePosition.swift */,
+				0679DB2A88C9E8BAC94FACAE /* StationMetrics.swift */,
+			);
+			path = Design;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		F2FD1E11EB41E98F44FCDCE1 /* SpaceStation */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 0340E7ECA25C2F0D7EFFEF68 /* Build configuration list for PBXNativeTarget "SpaceStation" */;
+			buildPhases = (
+				0D4ADFC3EBC3F60D98BCD05D /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = SpaceStation;
+			packageProductDependencies = (
+			);
+			productName = SpaceStation;
+			productReference = 8F5D5BE57DB007B1EC63273F /* SpaceStation.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		E1CB02F3636DB225F332FB0E /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					F2FD1E11EB41E98F44FCDCE1 = {
+						ProvisioningStyle = Manual;
+					};
+				};
+			};
+			buildConfigurationList = 8886078E0742A5C0446A39C2 /* Build configuration list for PBXProject "SpaceStation" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 8BABD55EE989349E44740E36;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = B748047F1CD0ABF7408942D0 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				F2FD1E11EB41E98F44FCDCE1 /* SpaceStation */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		0D4ADFC3EBC3F60D98BCD05D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FE4360DEF187C9099B1DE4D8 /* Action.swift in Sources */,
+				D3E09EE3F67444FFD5117F26 /* ActionExecutor.swift in Sources */,
+				0934244D4A3990A5B77CDED9 /* AppDelegate.swift in Sources */,
+				49DEE202B591C589BF1B0913 /* AuxPanel.swift in Sources */,
+				D581451499000E95D1AD6DC5 /* CardGridView.swift in Sources */,
+				679ECE8365882FA8050CC7F0 /* ClipKind.swift in Sources */,
+				2BFA6039F9922D40799C6C82 /* Clipboard.swift in Sources */,
+				FEC3108B71DF5677C6E18270 /* ClipboardUndo.swift in Sources */,
+				04675B6E6B3D172037ABFF60 /* EdgeIndicator.swift in Sources */,
+				09D40A3402BC8C3629351B72 /* EdgePosition.swift in Sources */,
+				969C89F3DB1ADEA37DFC86E7 /* FilterBar.swift in Sources */,
+				17B1A04F81ABFADE6AB4F3B0 /* FloatingPanel.swift in Sources */,
+				69E7EEAEBA8427BF34A032AE /* GlassComponents.swift in Sources */,
+				F0BE20F3F6B2FAAA661C430D /* History.swift in Sources */,
+				2D0E2DC07B65AB130699DF9A /* HistoryItem.swift in Sources */,
+				537645F5AE114AF03CFEC1AE /* HistoryItemContent.swift in Sources */,
+				F4A778DCF53839D9963E671B /* HotkeyStore.swift in Sources */,
+				1D9D532354906C0DCD8BD428 /* KeyboardRouter.swift in Sources */,
+				21C969A4269CF66C592C81B9 /* MiniFinder.swift in Sources */,
+				CA7DB22944F2ECAA768B3EAB /* NavBar.swift in Sources */,
+				1DC2266DA77241F425E99074 /* NoteComposer.swift in Sources */,
+				BAF9F257986300A6840648A8 /* PredictionEngine.swift in Sources */,
+				14EE98D76E801FD330F961F1 /* PurifyView.swift in Sources */,
+				5810AE3ADAA4FB49C5F8BD73 /* QuickLookView.swift in Sources */,
+				97D3B794B74115A9E254D2F7 /* SettingsView.swift in Sources */,
+				05255B1948746885220047E0 /* Sorter.swift in Sources */,
+				1FECC3612B387E51B7F275FB /* SpaceStationApp.swift in Sources */,
+				618B0BB04B2624396C9F11E3 /* SplitView.swift in Sources */,
+				F9F461EE86656E7F52311523 /* StationCard.swift in Sources */,
+				81C0F015695D0C2F5A03C68D /* StationMetrics.swift in Sources */,
+				F925B67EF2DFD328D28D7A18 /* StationPanel.swift in Sources */,
+				4CA201D57354A69CA51F18B1 /* StationState.swift in Sources */,
+				D678E7DE264BBBB3AE73604C /* Storage.swift in Sources */,
+				DB05352077C90B589793930F /* Support.swift in Sources */,
+				ADC3E289DD4B8819ED20CB53 /* ThumbnailCache.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		19F8D99D14FA40E1AD577857 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = arm64;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_HARDENED_RUNTIME = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				OTHER_SWIFT_FLAGS = "-disable-sandbox";
+				PRODUCT_BUNDLE_IDENTIFIER = com.samuelonly.spacestation;
+				PRODUCT_NAME = SpaceStation;
+				SDKROOT = macosx;
+				SUPPORTED_PLATFORMS = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		731B1DED9B440D8DD3A68687 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				COMBINE_HIDPI_IMAGES = YES;
+				INFOPLIST_FILE = SpaceStation/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		74F54EF0092C5823B2DFF8EE /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				COMBINE_HIDPI_IMAGES = YES;
+				INFOPLIST_FILE = SpaceStation/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		F554B2FA4740AE173F514176 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = arm64;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_HARDENED_RUNTIME = NO;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				OTHER_SWIFT_FLAGS = "-disable-sandbox";
+				PRODUCT_BUNDLE_IDENTIFIER = com.samuelonly.spacestation;
+				PRODUCT_NAME = SpaceStation;
+				SDKROOT = macosx;
+				SUPPORTED_PLATFORMS = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		0340E7ECA25C2F0D7EFFEF68 /* Build configuration list for PBXNativeTarget "SpaceStation" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				731B1DED9B440D8DD3A68687 /* Debug */,
+				74F54EF0092C5823B2DFF8EE /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		8886078E0742A5C0446A39C2 /* Build configuration list for PBXProject "SpaceStation" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				19F8D99D14FA40E1AD577857 /* Debug */,
+				F554B2FA4740AE173F514176 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = E1CB02F3636DB225F332FB0E /* Project object */;
+}

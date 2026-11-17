@@ -659,3 +659,14 @@ specific requirements.
 if any, to sign a "copyright disclaimer" for the program, if necessary.
 For more information on this, and how to apply and follow the GNU AGPL, see
 <https://www.gnu.org/licenses/>.
+
+---
+
+## 作者附注（非协议正文，不构成对 AGPL-3.0 条款的修改）
+
+本项目以 GNU AGPL-3.0 开源发布。版权所有者（Samuel Liu）同时保留以**专有许可**分发本软件的权力：适用于闭源商业分发、Mac App Store 上架，或不希望遵守 AGPL 开源义务的场景。
+
+- 开源用户：按 AGPL-3.0 条款使用、修改、Fork 本项目（以上协议正文为准）。
+- 需要专有许可：请联系作者获取单独授权。
+
+此双许可安排与 AGPL-3.0 正文并存，不改变上方协议正文任何条款的效力。

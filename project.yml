@@ -1,0 +1,41 @@
+name: SpaceStation
+
+options:
+  deploymentTarget:
+    macOS: "15.0"
+
+settings:
+  base:
+    PRODUCT_NAME: SpaceStation
+    PRODUCT_BUNDLE_IDENTIFIER: com.samuelonly.spacestation
+    MACOSX_DEPLOYMENT_TARGET: "15.0"
+    SUPPORTED_PLATFORMS: macosx
+    ARCHS: arm64
+    SWIFT_VERSION: "6.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    # Swift 6.4's plugin server is sandboxed by default and cannot load the
+    # SwiftData/Observation macro dylibs in this environment. `-disable-sandbox`
+    # lets @Model / @Observable expand (verified with a minimal swiftc repro).
+    OTHER_SWIFT_FLAGS: -disable-sandbox
+    CODE_SIGN_IDENTITY: "-"
+    CODE_SIGN_STYLE: Manual
+    ENABLE_HARDENED_RUNTIME: false
+    ALWAYS_SEARCH_USER_PATHS: false
+
+targets:
+  SpaceStation:
+    type: application
+    platform: macOS
+    sources:
+      - path: SpaceStation
+    info:
+      path: SpaceStation/Info.plist
+      properties:
+        CFBundleDevelopmentRegion: en
+        CFBundlePackageType: APPL
+        CFBundleShortVersionString: "0.1.0"
+        CFBundleVersion: "1"
+        LSApplicationCategoryType: public.app-category.productivity
+        LSUIElement: true
+        NSPrincipalClass: NSApplication
+        NSHumanReadableCopyright: "Copyright © 2026 Samuel Liu"

@@ -1,0 +1,6 @@
+_base/
+space-station/.build/
+space-station/build/
+DerivedData/
+*.xcuserdatad
+.DS_Store
