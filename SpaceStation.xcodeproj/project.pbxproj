@@ -51,6 +51,7 @@
 		597726E5B48648E007780E27 /* OCRServiceIconView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55B5FDE16E0F4B1DD87266E3 /* OCRServiceIconView.swift */; };
 		5B2689AA735BBA5FD2F45AE2 /* OCRServiceModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBEE36119696359A9BC5C3B6 /* OCRServiceModels.swift */; };
 		5C75F440C75B838D952AF21F /* TranslateOverlayController.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA7645D79DA5B9CFFE7396D7 /* TranslateOverlayController.swift */; };
+		5E1D67685D7062FB4498D872 /* AnnotationOverlayController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45A6C30930491B39BC17BAC9 /* AnnotationOverlayController.swift */; };
 		5E270F0D70FCD46E75846B5B /* SnapFlowAppearance.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73D012B1A1E73F8BA516CCB4 /* SnapFlowAppearance.swift */; };
 		618B0BB04B2624396C9F11E3 /* SplitView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6435DDA4040C6587902D6E91 /* SplitView.swift */; };
 		61FD5137C1AD18381877D568 /* AppLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D50473226BE4DCF8F62D778 /* AppLanguage.swift */; };
@@ -82,6 +83,7 @@
 		CA7DB22944F2ECAA768B3EAB /* NavBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = EDFCB85022D1D815FAC70276 /* NavBar.swift */; };
 		CCEFCAE41C093479B0C0B243 /* AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = D85E3B05ED80CD97DC96CAEA /* AppTheme.swift */; };
 		D3E09EE3F67444FFD5117F26 /* ActionExecutor.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4B659C560F61581278E3BAF /* ActionExecutor.swift */; };
+		D4A96CE6720E978DD9CEEDAA /* TranslateResultView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5508632F37E132293E11535F /* TranslateResultView.swift */; };
 		D581451499000E95D1AD6DC5 /* CardGridView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DDF26AF5CFF95EB9EF1BA31 /* CardGridView.swift */; };
 		D678E7DE264BBBB3AE73604C /* Storage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FFF6A462C690A79D3A0EA2B /* Storage.swift */; };
 		D81490E9161084A9DE108358 /* OCRProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = C99BD3709991DFB51F7BCF9C /* OCRProvider.swift */; };
@@ -137,6 +139,7 @@
 		3E57A9E4638D52F254DE7F85 /* HistoryItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryItem.swift; sourceTree = "<group>"; };
 		3E811D60B9E44F580DC921B4 /* ProviderCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProviderCatalog.swift; sourceTree = "<group>"; };
 		40E43E037F615742C51E99CF /* CaptureConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureConfiguration.swift; sourceTree = "<group>"; };
+		45A6C30930491B39BC17BAC9 /* AnnotationOverlayController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnotationOverlayController.swift; sourceTree = "<group>"; };
 		4604D0240447DC558CC0771F /* ScrollCaptureControlPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollCaptureControlPanel.swift; sourceTree = "<group>"; };
 		47B38A36DB38AE5B1B434245 /* SpaceStationApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpaceStationApp.swift; sourceTree = "<group>"; };
 		4AA20DD8F3D8F89E7DB4208F /* NoteComposer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteComposer.swift; sourceTree = "<group>"; };
@@ -144,6 +147,7 @@
 		4D7C9F18D29CADF8E4C4ABF8 /* FloatingPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingPanel.swift; sourceTree = "<group>"; };
 		521D6E57D48C54745B440D3F /* PointerCursor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PointerCursor.swift; sourceTree = "<group>"; };
 		54BFDE71DA3FBDFF59D6C430 /* TextInputSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextInputSession.swift; sourceTree = "<group>"; };
+		5508632F37E132293E11535F /* TranslateResultView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslateResultView.swift; sourceTree = "<group>"; };
 		5538826F082F334DE2CD4226 /* TranslationServiceIconView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslationServiceIconView.swift; sourceTree = "<group>"; };
 		55B5FDE16E0F4B1DD87266E3 /* OCRServiceIconView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OCRServiceIconView.swift; sourceTree = "<group>"; };
 		5765BD524285EEC735B85836 /* WindowHitTester.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowHitTester.swift; sourceTree = "<group>"; };
@@ -374,6 +378,7 @@
 				6435DDA4040C6587902D6E91 /* SplitView.swift */,
 				0710C7D582674592754CA177 /* StationCard.swift */,
 				A24B6451F280C115189F94C9 /* StationPanel.swift */,
+				5508632F37E132293E11535F /* TranslateResultView.swift */,
 			);
 			path = UI;
 			sourceTree = "<group>";
@@ -416,6 +421,7 @@
 		8A93A8209E547DD1B7E1AF4F /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				45A6C30930491B39BC17BAC9 /* AnnotationOverlayController.swift */,
 				40E43E037F615742C51E99CF /* CaptureConfiguration.swift */,
 				D3B0F9E0799FBB56AA775EC6 /* CaptureIntegration.swift */,
 				6D68D99008C1D379C30513BB /* CaptureService.swift */,
@@ -642,6 +648,7 @@
 				91DB2DE0ACB2D404909D61E6 /* AnnotateOptionsBar.swift in Sources */,
 				E4359001DB228AF76C4453C7 /* AnnotationCanvasView.swift in Sources */,
 				86805C1455D2197F019022B9 /* AnnotationModels.swift in Sources */,
+				5E1D67685D7062FB4498D872 /* AnnotationOverlayController.swift in Sources */,
 				102C506E2624FD7E072F41F7 /* AppAction.swift in Sources */,
 				1321DF6A885C35D917CB1FA8 /* AppActivation.swift in Sources */,
 				0934244D4A3990A5B77CDED9 /* AppDelegate.swift in Sources */,
@@ -727,6 +734,7 @@
 				ADC3E289DD4B8819ED20CB53 /* ThumbnailCache.swift in Sources */,
 				5C75F440C75B838D952AF21F /* TranslateOverlayController.swift in Sources */,
 				C3030CCB1A7B0CAA95D5BC0B /* TranslatePopupSession.swift in Sources */,
+				D4A96CE6720E978DD9CEEDAA /* TranslateResultView.swift in Sources */,
 				E0EB888754BDF5BB9F74E00B /* TranslationLanguage.swift in Sources */,
 				460A6C8C53733AF4D7BC682C /* TranslationService.swift in Sources */,
 				F4538090D2DDA5C041F61515 /* TranslationServiceCardsView.swift in Sources */,

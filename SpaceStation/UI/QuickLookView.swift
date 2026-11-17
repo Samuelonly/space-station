@@ -264,6 +264,29 @@ struct QuickLookView: View {
             Text("来源 \(item.application ?? "未知 App") · \(kindLabel)")
                 .font(.system(size: 10)).foregroundStyle(.secondary)
             Spacer()
+            // 阶段三：对已有图片直接翻译 / 标注（面板先关，再开全屏能力）
+            if case .image(let image) = content {
+                Button {
+                    onDone()
+                    Task { @MainActor in
+                        await TranslateOverlayController.shared.translate(image: image)
+                    }
+                } label: {
+                    Label("原图翻译", systemImage: "globe")
+                        .font(.system(size: 11))
+                }
+                .buttonStyle(.borderless)
+                .help("OCR + 翻译，磨砂覆盖层展示译文")
+                Button {
+                    onDone()
+                    AnnotationOverlayController.shared.annotate(image: image)
+                } label: {
+                    Label("标注", systemImage: "pencil.tip")
+                        .font(.system(size: 11))
+                }
+                .buttonStyle(.borderless)
+                .help("画笔 / 箭头 / 文字 / 马赛克，完成后存为新图卡")
+            }
             if let copiable = copiableText {
                 Button {
                     copy(copiable)

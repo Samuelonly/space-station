@@ -16,6 +16,7 @@ final class AuxPanel: NSObject, NSWindowDelegate {
     static let miniFinderID = "com.samuelonly.spacestation.minifinder"
     static let purifyID = "com.samuelonly.spacestation.purify"
     static let noteComposerID = "com.samuelonly.spacestation.notecomposer"
+    static let translateID = "com.samuelonly.spacestation.translate"
 
     private var panel: NSPanel?
     private var onClose: (() -> Void)?

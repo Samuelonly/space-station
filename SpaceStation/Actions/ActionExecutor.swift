@@ -23,6 +23,7 @@ enum ActionExecutor {
         case miniFinder([URL])           // open Mini Finder at these URLs
         case quickLook(HistoryItem)      // M5: single preview module
         case purified(HistoryItem, String) // §17.6: purified link overlay (one button)
+        case translate(String)           // 阶段三B: async translate text → result panel
         case none
     }
 
@@ -124,6 +125,11 @@ enum ActionExecutor {
             // M1 HistoryItem.generateTitle already runs Vision OCR; reuse it.
             let text = item.title.isEmpty ? "（未识别到文字）" : item.title
             return Outcome(result: Result(title: "OCR 提取文字", detail: text.shortened(to: 120), copiableText: text), effect: .none)
+        },
+        "translate": { item in
+            // 阶段三B: 真翻译。同步层只取文本，实际翻译在 UI 层异步执行（见 CardGridView.present .translate）。
+            let text = item.text ?? item.title
+            return Outcome(result: Result(title: "翻译", detail: "正在翻译…", copiableText: nil), effect: .translate(text))
         },
         "otp": { item in
             let code = item.text?.range(of: #"\b\d{4,8}\b"#, options: .regularExpression).map { String(item.text![$0]) }

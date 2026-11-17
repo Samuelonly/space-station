@@ -264,6 +264,36 @@ struct CardGridView: View {
             ) {
                 PurifyView(url: url)
             }
+        case .translate(let text):
+            // 阶段三B: 翻译是 async，effect 层只承载输入，这里起 Task 调用服务，
+            // 完成后弹译文面板（默认系统翻译；失败给可读提示，不静默）。
+            Task { @MainActor in
+                do {
+                    let result = try await CaptureService.shared.translate([text])
+                    let output = result.texts.first ?? text
+                    AuxPanel.shared.present(
+                        identifier: AuxPanel.translateID,
+                        size: NSSize(width: 500, height: 330)
+                    ) {
+                        TranslateResultView(
+                            source: text,
+                            translated: output,
+                            note: result.userFacingNote
+                        )
+                    }
+                } catch {
+                    AuxPanel.shared.present(
+                        identifier: AuxPanel.translateID,
+                        size: NSSize(width: 440, height: 180)
+                    ) {
+                        TranslateResultView(
+                            source: text,
+                            translated: "翻译失败：\(error.localizedDescription)\n请到设置里配置翻译服务，或确认系统语言包已安装。",
+                            note: nil
+                        )
+                    }
+                }
+            }
         case .none:
             break
         }
