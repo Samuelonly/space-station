@@ -40,28 +40,38 @@ struct CardGridView: View {
     private var items: [HistoryItem] { stationState.visibleItems(from: allItems) }
 
     var body: some View {
-        // 外框圆角跟着**窗口宽度**算：纵向轨道只有 ~208 宽，死写 34 会显得过圆。
+        // 外框圆角跟着**窗口宽度**算：纵向轨道只有 ~176 宽，死写 34 会显得过圆。
         ContainerGlass(cornerRadius: StationMetrics.containerRadius(for: edge.panelSize.width)) {
-            VStack(spacing: 4) {
+            Group {
                 if edge.scrollsHorizontally {
-                    // 顶/底：一行三 tab，电源在右端。
-                    HStack(spacing: 4) {
-                        NavBar(state: stationState, axis: .horizontal)
-                        Spacer(minLength: 0)
-                        powerButton
+                    // 顶/底：一行导航（图标 + 文字，水平排文字是正常的）+ 一行筛选。
+                    VStack(spacing: 4) {
+                        HStack(spacing: 4) {
+                            NavBar(state: stationState, axis: .horizontal)
+                            Spacer(minLength: 0)
+                            powerButton
+                        }
+                        .frame(height: StationMetrics.navRowHeight)
+                        HStack(spacing: 6) { FilterBar(state: stationState, items: tabItems) }
+                            .frame(height: StationMetrics.filterRowHeight)
+                        railFrame
                     }
                 } else {
-                    // 左/右：站体太窄，横排会把 Clip / Favorite 挤断词 → 单列侧栏。
-                    NavBar(state: stationState, axis: .vertical)
-                }
-                HStack(spacing: 6) {
-                    FilterBar(state: stationState, items: tabItems)
-                    if !edge.scrollsHorizontally { powerButton }
-                }
-                Group {
-                    if tabItems.isEmpty { cabinEmpty }        // this cabin has no cards yet
-                    else if items.isEmpty { filteredEmpty }   // filter matched nothing
-                    else { rail }
+                    // 左/右：**44pt 纯图标侧栏**（macOS Sidebar 的做法）。
+                    // 文字竖排会被读成“这个栏是收起的”，所以纵向一个字都不放。
+                    HStack(spacing: 6) {
+                        VStack(spacing: 2) {
+                            NavBar(state: stationState, axis: .vertical)
+                            Spacer(minLength: 0)
+                            powerButton
+                        }
+                        .frame(width: StationMetrics.sidebarWidth)
+                        VStack(spacing: 4) {
+                            HStack(spacing: 6) { FilterBar(state: stationState, items: tabItems) }
+                                .frame(height: StationMetrics.filterRowHeight)
+                            railFrame
+                        }
+                    }
                 }
             }
             .padding(StationMetrics.inset)
@@ -124,10 +134,23 @@ struct CardGridView: View {
         .help("退出 Space Station（⌘Q）")
     }
 
+    /// 卡区：三种状态共用一块区域，高度由面板尺寸倒推（5 张卡 + 间距）。
+    @ViewBuilder
+    private var railFrame: some View {
+        Group {
+            if tabItems.isEmpty { cabinEmpty }        // this cabin has no cards yet
+            else if items.isEmpty { filteredEmpty }   // filter matched nothing
+            else { rail }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
     @ViewBuilder
     private var rail: some View {
         ScrollView(edge.scrollsHorizontally ? .horizontal : .vertical) {
-            railContent.padding(StationMetrics.inset)
+            // 注意：这里**不再**加 inset。外层 ContainerGlass 的内容已经 padding 过一轮，
+            // 上一版两处都加，等于轨道里凭空多出 24pt 边，5 张卡被挤成 4 张半。
+            railContent
             // §9: 零尺寸探针，拿到 SwiftUI ScrollView 底下的 NSScrollView。
             NSScrollViewCatcher(box: scrollBox).frame(width: 1, height: 1)
         }
@@ -145,9 +168,19 @@ struct CardGridView: View {
             railGeometry = new
             reportVisibleCards(geometry: new)
         })
+        // **边缘淡出只做 12pt，不做三分之一屏**。
+        // 上一版用 `[.clear, .black, .black, .clear]` 的默认 stop，SwiftUI 会把它
+        // 均分成 0 / 33% / 67% / 100% —— 等于视口两端各有三分之一是虚的，
+        // 中间只剩三分之一实心。用户看到的“一屏只有 2.5 张”有一半是这条遮罩造成的。
+        // 现在显式给 location，只让最外侧 12pt 渐隐，剩下的全是实体卡。
         .mask {
             LinearGradient(
-                colors: [.clear, .black, .black, .clear],
+                stops: [
+                    .init(color: .clear, location: 0),
+                    .init(color: .black, location: 0.014),
+                    .init(color: .black, location: 0.986),
+                    .init(color: .clear, location: 1),
+                ],
                 startPoint: edge.scrollsHorizontally ? .leading : .top,
                 endPoint: edge.scrollsHorizontally ? .trailing : .bottom
             )

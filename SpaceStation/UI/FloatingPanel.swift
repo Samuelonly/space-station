@@ -51,6 +51,11 @@ final class FloatingPanel<Content: View>: NSPanel, NSWindowDelegate {
         isMovableByWindowBackground = true
         hidesOnDeactivate = false
         backgroundColor = .clear
+        // **玻璃的先决条件**：窗口必须声明自己不是不透明的。
+        // 少了这一行，`NSVisualEffectView` 的 `.behindWindow` 采样会被窗口挡住，
+        // 玻璃退化成一块纯色 —— 上一版“看不到桌面”有一半是这里的原因。
+        isOpaque = false
+        hasShadow = true
 
         standardWindowButton(.closeButton)?.isHidden = true
         standardWindowButton(.miniaturizeButton)?.isHidden = true
@@ -183,22 +188,24 @@ final class FloatingPanel<Content: View>: NSPanel, NSWindowDelegate {
         statusBarButton: NSStatusBarButton?
     ) -> NSPoint {
         let screen = NSScreen.main?.visibleFrame ?? .zero
-        let margin: CGFloat = 10
 
         switch edge {
         case .top:
+            // **默认家在状态栏正下方**（用户 2026-11-18：顶部、状态栏下面、磁吸卡位）。
+            // visibleFrame.maxY 本来就等于菜单栏下沿，所以这里只留 4pt ——
+            // 视觉上是“吸在菜单栏底下”，而不是“浮在屏幕上半部分”。
             let anchorX = statusBarButton?.window?.frame.midX ?? screen.midX
             let x = min(max(anchorX - size.width / 2, screen.minX), max(screen.maxX - size.width, screen.minX))
-            return NSPoint(x: x, y: screen.maxY - size.height - margin)
+            return NSPoint(x: x, y: screen.maxY - size.height - 4)
         case .bottom:
             let anchorX = statusBarButton?.window?.frame.midX ?? screen.midX
             let x = min(max(anchorX - size.width / 2, screen.minX), max(screen.maxX - size.width, screen.minX))
-            return NSPoint(x: x, y: screen.minY + margin)
+            return NSPoint(x: x, y: screen.minY + 4)
         case .left:
-            return NSPoint(x: screen.minX + margin,
+            return NSPoint(x: screen.minX + 4,
                            y: screen.midY - size.height / 2)
         case .right:
-            return NSPoint(x: screen.maxX - size.width - margin,
+            return NSPoint(x: screen.maxX - size.width - 4,
                            y: screen.midY - size.height / 2)
         }
     }

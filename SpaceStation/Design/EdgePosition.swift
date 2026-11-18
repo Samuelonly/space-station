@@ -56,19 +56,56 @@ enum EdgePosition: String, CaseIterable, Sendable {
         set { ud.set(newValue.rawValue, forKey: storageKey) }
     }
 
-    /// Panel size derived from the rail direction: horizontal rails are wide &
-    /// short, vertical rails are narrow & tall. Padding leaves room for the
-    /// glass container shell + inset.
+    /// 按当前面板尺寸，首屏**完整**放得下的卡数（向下取整，不算被裁的半张）。
+    ///
+    /// 这条是产品口径的计算机版本：「一屏看得见 5 张」不是一个形容词，
+    /// 是 `n × 卡位 + (n-1) × 间距 ≤ 可用长度` 这个不等式。放进 L1 自检，
+    /// 以后谁把卡改大、把间距改宽，自检当场就红。
+    var firstScreenCapacity: Int {
+        let slot = (scrollsHorizontally ? cardSize.width : cardSize.height)
+            + StationMetrics.innerPadding * 2
+        let spacing = StationMetrics.itemSpacing
+        let usable: CGFloat
+        if scrollsHorizontally {
+            usable = panelSize.width - StationMetrics.inset * 2
+        } else {
+            usable = panelSize.height - StationMetrics.inset * 2
+                - StationMetrics.filterRowHeight - 4
+        }
+        guard slot + spacing > 0 else { return 0 }
+        return Int(((usable + spacing) / (slot + spacing)).rounded(.down))
+    }
+
+    /// Panel size **由“首屏 5 张”反推**，不是先拍一个窗口大小再往里塞卡片。
+    ///
+    /// 上一版顶/底写死 780 宽，208 的卡一屏只能露出 3 张半——
+    /// 用户看到的就是“抽屉里翻东西”。现在宽度是算出来的：
+    ///   5 × (卡宽 + 卡呼吸 12) + 4 × 间距 12 + 两侧 inset 24
     var panelSize: NSSize {
         let card = cardSize
-        let outer = StationMetrics.inset * 2
-            + StationMetrics.innerPadding * 2
-            + StationMetrics.dockStyleOuter * 2
+        let n = CGFloat(StationMetrics.firstScreenCards)
+        let gaps = CGFloat(StationMetrics.firstScreenCards - 1)
+        // 每张卡自身的外框（StationCard 在卡体外留 innerPadding 供选中描边呼吸）
+        let slotW = card.width + StationMetrics.innerPadding * 2
+        let slotH = card.height + StationMetrics.innerPadding * 2
+        let pad = StationMetrics.inset * 2
+        let spacing = StationMetrics.itemSpacing
+
         if scrollsHorizontally {
-            // One card tall + a little breathing room for the rim/gradient.
-            return NSSize(width: 780, height: card.height + outer + 12)
+            let rail = n * slotW + gaps * spacing
+            let height = pad
+                + StationMetrics.navRowHeight + 4
+                + StationMetrics.filterRowHeight + 4
+                + slotH
+            return NSSize(width: pad + rail, height: height)
         } else {
-            return NSSize(width: card.width + outer + 12, height: 640)
+            // 纵向：左侧 44pt 纯图标栏 + 6pt 缝 + 一列卡
+            let rail = n * slotH + gaps * spacing
+            let width = pad + StationMetrics.sidebarWidth + 6 + slotW
+            let height = pad
+                + StationMetrics.filterRowHeight + 4
+                + rail
+            return NSSize(width: width, height: height)
         }
     }
 }

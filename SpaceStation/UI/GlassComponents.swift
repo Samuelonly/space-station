@@ -1,9 +1,49 @@
+import AppKit
 import SwiftUI
 
 /// M2 glass primitives — design logic only, rewritten in our own SwiftUI with
-/// no third-party source copied (see THIRD_PARTY_LICENSES). macOS 15 uses the
-/// public `.ultraThinMaterial`; private-API effect pipelines are deliberately
-/// dropped (HTML §21.6.2 / §21.6.5).
+/// no third-party source copied (see THIRD_PARTY_LICENSES).
+///
+/// **2026-11-18 更正：玻璃必须是 AppKit 的 `NSVisualEffectView`。**
+/// 上一版全项目用 SwiftUI 的 `.regularMaterial` / `.ultraThinMaterial`，
+/// 那是 SwiftUI 自己的近似磨砂——它只对“窗口内的兄弟视图”做模糊，
+/// 而我们的面板是透明窗口，它拿不到身后的桌面，观感就永远是一层灰白雾。
+/// DockDoor 用的是 `NSVisualEffectView`（BlurView.swift），Swift 占 1.73MB、
+/// 零 CSS —— 跟我们同一套底层，不存在“它做得到我们做不到”。
+/// 差别只在 `blendingMode`：`.behindWindow` 才会真正采样并模糊桌面。
+
+/// 真·玻璃层。作为背景铺在任何 SwiftUI 形状底下。
+struct VibrancyView: NSViewRepresentable {
+    var material: NSVisualEffectView.Material = .underWindowBackground
+    var blending: NSVisualEffectView.BlendingMode = .behindWindow
+    var cornerRadius: CGFloat = 0
+    /// 强调态（跟随系统 accent 提亮）。壳不用，卡片也不用——我们要的是“桌面透上来”。
+    var isEmphasized: Bool = false
+
+    func makeNSView(context: Context) -> NSVisualEffectView {
+        let view = NSVisualEffectView()
+        // **`.active` 是必须的**：面板大多数时间不是 key window，
+        // 默认的 `.followsWindowActiveState` 会在失焦瞬间把玻璃塌成死灰。
+        view.state = .active
+        view.material = material
+        view.blendingMode = blending
+        view.isEmphasized = isEmphasized
+        view.wantsLayer = true
+        return view
+    }
+
+    func updateNSView(_ view: NSVisualEffectView, context: Context) {
+        view.state = .active
+        view.material = material
+        view.blendingMode = blending
+        view.isEmphasized = isEmphasized
+        // SwiftUI 的 clipShape 对 NSViewRepresentable 不总是生效，
+        // 这里在 layer 上再兜一次底，圆角绝不溢出。
+        view.layer?.cornerRadius = cornerRadius
+        view.layer?.cornerCurve = .continuous
+        view.layer?.masksToBounds = cornerRadius > 0
+    }
+}
 
 // MARK: - borderedBackground
 extension View {
@@ -23,7 +63,7 @@ extension View {
 /// (the public fallback path for older OS versions).
 struct GlassSurface<S: InsettableShape>: View {
     let shape: S
-    var tintOpacity: CGFloat = StationMetrics.tintOpacity
+    var tintOpacity: CGFloat = 0.10
 
     var body: some View {
         ZStack {
@@ -34,21 +74,24 @@ struct GlassSurface<S: InsettableShape>: View {
     }
 }
 
-// MARK: - Container glass shell (dockStyle.swift:75-106 synthetic branch)
-/// BlurView + rim-light strokeBorder. The modern `glassEffect` overlay branch
-/// is macOS 26+ private-API territory and is intentionally not ported.
+// MARK: - Container glass shell (轨道壳)
+/// **壳只做两件事：让桌面透上来、给一个“到此为止”的边。**
+///
+/// 上一版这里最后一行是 `.opacity(0.55)` —— 那是对**整棵内容树**降透明度，
+/// 卡片、文字、图标一起变成 55% 不透明的灰，这才是“整体发灰”的真凶。
+/// 现在：
+///  - 真玻璃（`VibrancyView` + `.behindWindow`）负责“透”，不靠 alpha 模拟；
+///  - 一层极淡的染色负责“定形”，避免玻璃在花哨桌面上糊成一片；
+///  - 边缘只剩一条 1pt、opacity≈0.10 的高光 —— 淡到几乎看不见（用户口径）。
 struct ContainerGlass<Content: View>: View {
     let cornerRadius: CGFloat
-    var opacity: CGFloat = StationMetrics.glassOpacity
     let content: Content
 
     init(
         cornerRadius: CGFloat = StationMetrics.containerRadius,
-        opacity: CGFloat = StationMetrics.glassOpacity,
         @ViewBuilder content: () -> Content
     ) {
         self.cornerRadius = cornerRadius
-        self.opacity = opacity
         self.content = content()
     }
 
@@ -60,15 +103,20 @@ struct ContainerGlass<Content: View>: View {
         content
             .background {
                 ZStack {
-                    GlassSurface(shape: shape)
+                    VibrancyView(
+                        material: StationMetrics.shellMaterial,
+                        blending: .behindWindow,
+                        cornerRadius: cornerRadius
+                    )
+                    // 极淡染色：不是“半透明遮罩”，是给玻璃一个色温。
+                    shape.fill(Color.primary.opacity(StationMetrics.shellTint))
                     shape.strokeBorder(
-                        StationMetrics.borderGradient(),
+                        StationMetrics.shellRimGradient,
                         lineWidth: StationMetrics.borderWidth
                     )
                 }
                 .clipShape(shape)
             }
-            .opacity(opacity)
     }
 }
 

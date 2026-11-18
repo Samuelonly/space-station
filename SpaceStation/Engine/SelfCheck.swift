@@ -161,11 +161,27 @@ enum SelfCheck {
                 && right == left,
             "\(Int(left.width))×\(Int(left.height))"
         ))
+        // 两边**同高**（120 = 40×3），只是转置方向不同；不再要求体积相等——
+        // 横向要给 5 张留出 160 的宽度，纵向必须缩到 90，两者本来就不是同一个面积。
         items.append(check(
-            "卡比例·两侧互为转置（体积不变）",
-            abs(top.width - left.height) < 0.01 && abs(top.height - left.width) < 0.01,
+            "卡尺寸·两边同高 120（40×3）",
+            abs(top.height - left.height) < 0.01
+                && abs(top.height - 120) < 0.01,
             "横 \(Int(top.width))×\(Int(top.height)) / 竖 \(Int(left.width))×\(Int(left.height))"
         ))
+
+        // **一屏 5 张**是产品硬指标，不是形容词。
+        // 面板尺寸由卡尺寸反推，所以这里直接量“面板里究竟塞得下几张”——
+        // 谁把卡改大、间距改宽，这条当场变红。
+        for (edge, name) in [(EdgePosition.top, "顶/底"), (.left, "左/右")] {
+            let capacity = edge.firstScreenCapacity
+            let panel = edge.panelSize
+            items.append(check(
+                "首屏·\(name)装得下 \(StationMetrics.firstScreenCards) 张",
+                capacity >= StationMetrics.firstScreenCards,
+                "\(capacity) 张 / 面板 \(Int(panel.width))×\(Int(panel.height))"
+            ))
+        }
 
         // 内容井**一律 cover**（Instagram / 微博逻辑）：不管图多窄多宽，
         // 渲染尺寸两个方向都必须不小于井 = 井里没有留白。

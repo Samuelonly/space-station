@@ -6,9 +6,10 @@ import SwiftUI
 /// for §8(b) "Favorite 页签 → + → 直接打字创建笔记卡". `mini` is lowercase on
 /// purpose (§965: 让用户好奇再点开) and filters Favorite to folder cards.
 ///
-/// **轴向（2026-11-18）**：轨道在顶部/底部时横向排一行；轨道贴在左/右时，
-/// 站体只有 ~208 宽，横排会把 `Clip` / `Favorite` 挤成两行（用户截图里就是
-/// 那两个断词）。所以纵向轨道改成**单列**，每个 tab 一整行。
+/// **轴向（2026-11-18 第二次修正）**：纵向轨道不再“把文字竖着排”——
+/// 竖排文字本身就是一种错误信号，用户会读成“这个栏是收起的”。
+/// 现在纵向 = **44pt 纯图标侧栏**（macOS Sidebar 的做法），文字全部退进 tooltip。
+/// 横向轨道照旧一行图标 + 文字，因为水平方向排文字是正常的。
 struct NavBar: View {
     @Bindable var state: StationState
     var axis: Axis = .horizontal
@@ -23,16 +24,19 @@ struct NavBar: View {
                     plusButton
                 }
             } else {
-                VStack(spacing: 3) {
+                VStack(spacing: 2) {
                     tab(.clip, label: "Clip", symbol: "tray")
                     tab(.favorite, label: "Favorite", symbol: "star")
                     tab(.mini, label: "mini", symbol: "folder")
                     plusButton
                 }
+                .frame(width: StationMetrics.sidebarWidth)
             }
         }
         .animation(StationMetrics.gridAnimation, value: state.activeTab)
     }
+
+    private var iconOnly: Bool { axis == .vertical }
 
     /// §701 / §966: `+` belongs to Favorite only, and is an action
     /// (author a note), never a state tab.
@@ -40,19 +44,20 @@ struct NavBar: View {
     private var plusButton: some View {
         if state.activeTab == .favorite {
             Button { openComposer() } label: {
-                HStack(spacing: 5) {
+                if iconOnly {
                     Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 13))
+                        .font(.system(size: 14))
                         .foregroundStyle(Color.accentColor)
-                    if axis == .vertical {
-                        Text("新笔记").font(.system(size: 11)).foregroundStyle(.secondary)
-                        Spacer(minLength: 0)
+                        .frame(width: StationMetrics.sidebarWidth - 8, height: 26)
+                } else {
+                    HStack(spacing: 5) {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.system(size: 13))
+                            .foregroundStyle(Color.accentColor)
                     }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
                 }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 3)
-                .frame(maxWidth: axis == .vertical ? .infinity : nil,
-                       alignment: .leading)
             }
             .buttonStyle(.plain)
             .help("新建笔记卡（Favorite）")
@@ -62,7 +67,6 @@ struct NavBar: View {
 
     private func tab(_ tab: StationState.StationTab, label: String, symbol: String) -> some View {
         let active = state.activeTab == tab
-        let stacked = axis == .vertical
         return Button {
             withAnimation(StationMetrics.gridAnimation) {
                 state.activeTab = tab
@@ -70,29 +74,40 @@ struct NavBar: View {
                 state.filterKind = nil
             }
         } label: {
-            HStack(spacing: 5) {
-                Image(systemName: symbol).font(.system(size: 10))
-                // 单行、不换行：宁可截断也不许断成两行（断词比截断难看十倍）。
-                Text(label)
-                    .font(.system(size: 11, weight: active ? .semibold : .regular))
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-                if stacked { Spacer(minLength: 0) }
+            if iconOnly {
+                // 纯图标：整格 36×26，选中只换底与字重，不换尺寸（避免点击位移）。
+                Image(systemName: symbol)
+                    .font(.system(size: 13, weight: active ? .semibold : .regular))
+                    .foregroundStyle(active ? Color.primary : Color.secondary)
+                    .frame(width: StationMetrics.sidebarWidth - 8,
+                           height: 26)
+                    .background(
+                        RoundedRectangle(cornerRadius: 7, style: .continuous)
+                            .fill(active ? Color.accentColor.opacity(0.16) : Color.clear)
+                    )
+                    .contentShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+            } else {
+                HStack(spacing: 5) {
+                    Image(systemName: symbol).font(.system(size: 10))
+                    Text(label)
+                        .font(.system(size: 11, weight: active ? .semibold : .regular))
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 3)
+                .background(
+                    Capsule().fill(active ? Color.accentColor.opacity(0.22) : Color.clear)
+                )
+                .overlay(
+                    Capsule().strokeBorder(Color.primary.opacity(active ? 0.18 : 0.06), lineWidth: 1)
+                )
+                .foregroundStyle(active ? Color.primary : Color.secondary)
+                .contentShape(Capsule())
             }
-            .padding(.horizontal, 8)
-            .padding(.vertical, stacked ? 4 : 3)
-            // 纵向轨道：整行可点、整行高亮，像侧栏；横向轨道：胶囊包住文字。
-            .frame(maxWidth: stacked ? .infinity : nil, alignment: .leading)
-            .background(
-                Capsule().fill(active ? Color.accentColor.opacity(0.22) : Color.clear)
-            )
-            .overlay(
-                Capsule().strokeBorder(Color.primary.opacity(active ? 0.18 : 0.06), lineWidth: 1)
-            )
-            .foregroundStyle(active ? Color.primary : Color.secondary)
-            .contentShape(Capsule())
         }
         .buttonStyle(.plain)
+        .help(label)
     }
 
     private func openComposer() {

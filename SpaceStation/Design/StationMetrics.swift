@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 /// M2 card-shell design tokens. Design logic only — no third-party source copied
@@ -27,25 +28,50 @@ enum StationMetrics {
         return min(containerRadius, width * 0.155)
     }
 
-    // MARK: - Spacing (scaled for our panel;
-    //         HTML §21.6.4 leaves spacing/inset to us)
-    static let itemSpacing: CGFloat = 16
+    // MARK: - Spacing
+    /// 间距从 16 收到 12：卡变小了（首屏要塞 5 张），16 的缝在 120 高的卡上会显得“散架”。
+    static let itemSpacing: CGFloat = 12
     static let inset: CGFloat = 12
     static let dockStyleOuter: CGFloat = 2
+    /// 纵向轨道左侧的纯图标栏宽（不再放文字，见 NavBar）。
+    static let sidebarWidth: CGFloat = 44
+    /// 横向轨道上两行控件的实际高度（导航行 / 筛选行）。面板高度按它反推。
+    static let navRowHeight: CGFloat = 22
+    static let filterRowHeight: CGFloat = 22
+
+    // MARK: - 首屏张数（这是硬指标，不是感觉）
+    /// **一屏必须看得见 5 张卡**（用户 2026-11-18：只能看到 2.5 张就不对）。
+    /// 面板尺寸一律由这个数反推，而不是先拍一个窗口大小再往里塞。
+    static let firstScreenCards = 5
 
     // MARK: - Glass
-    /// **层级反转（2026-11-18 修正）**：原来轨道壳 0.95、卡片又叠一层 0.78 透明度，
-    /// 结果是“壳太实、卡太淡、整体发灰”。正确的关系是：
-    ///  轨道壳 = 几乎没有（只要一层薄胶 + 一条亮边，让桌面透上来）
-    ///  卡片   = 比壳更实（`.regularMaterial`，不透明度 1），这样卡是浮在桌面上的实物
-    static let glassOpacity: CGFloat = 0.55       // 轨道壳的材质不透明度（原 0.95）
-    static let tintOpacity: CGFloat = 0.10        // 轨道壳的染色（原 0.18）
-    static let borderOpacity: CGFloat = 0.24      // 轨道壳亮边（原 0.15，加深让轮廓清晰）
-    static let borderWidth: CGFloat = 1           // dockBackgroundBorderWidth
+    /// **壳 = 真玻璃，不靠 alpha 模拟**（2026-11-18 重做）。
+    /// 上一版把 `.opacity(0.55)` 加在整棵内容树上，卡片文字跟着一起变灰——
+    /// 那是“整体发灰”的病根，不是调参能救的。现在透明度归 `NSVisualEffectView`。
+    static let shellMaterial: NSVisualEffectView.Material = .underWindowBackground
+    /// 给玻璃一个色温（不是遮罩、不是半透明白）。0.035 刚好能定形，看不出有层膜。
+    static let shellTint: CGFloat = 0.035
+    static let borderWidth: CGFloat = 1
+
+    /// 壳的边缘：**淡到几乎看不见**（用户口径：“边框可以淡到看不见，是用 Glass 完成的”）。
+    /// 只保留左上受光、右下收暗的一点点方向感，不再画一圈“框”。
+    static var shellRimGradient: LinearGradient {
+        LinearGradient(
+            colors: [
+                .white.opacity(0.16),
+                .white.opacity(0.05),
+                .white.opacity(0.015),
+                .white.opacity(0.06),
+                .white.opacity(0.11),
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
 
     // MARK: - Rim-light stroke (dockStyle.swift:112-125)
-    /// 5 white stops; scale = opacity / 0.15, direction topLeading→bottomTrailing.
-    static func borderGradient(opacity: CGFloat = StationMetrics.borderOpacity) -> LinearGradient {
+    /// 保留旧接口：少量辅助面板还在用“稍微明显一点”的边。
+    static func borderGradient(opacity: CGFloat = 0.15) -> LinearGradient {
         let scale = opacity / 0.15
         return LinearGradient(
             colors: [
@@ -95,7 +121,9 @@ enum StationMetrics {
     static let headerHeight: CGFloat = 18
     /// 右上动作组件在 hover 时占掉的宽度，头部文字据此让位，避免挤掉按钮。
     /// 4 个 16pt 芯片 + 间距 + 胶囊内边距 ≈ 78，留 6pt 余量。
-    static let actionClusterReserve: CGFloat = 84
+    /// 右上动作组件在 hover 时占掉的宽度由卡宽现算（见 StationCard.actionClusterReserve），
+    /// 这里只留一个下限，供旧调用方参考。
+    static let actionClusterReserve: CGFloat = 44
 
     // MARK: - Card background stroke (WindowPreview.swift:853, MaterialPill.swift:12)
     static let cardBgStroke: CGFloat = 1.75          // .primary.opacity(0.1)
@@ -111,13 +139,19 @@ enum StationMetrics {
     static let scrollDeltaMultiplier: CGFloat = 10
 
     // MARK: - Card body size per dock edge (HTML §18.5 / §9)
-    /// **比例随边反转**（2026-11-18 用户口径，替换原来接反的一版）：
-    /// - 轨道在**顶部 / 底部**（横向排一列卡）→ 卡是 **4:3 横版**，像 DockDoor 的窗口预览；
-    /// - 轨道在**左侧 / 右侧**（纵向排一列卡）→ 卡是 **3:4 竖版**，像一叠卡片。
-    /// 两个方向互为转置，同一把尺子，换边只换朝向不换体积。
-    static let horizontalCard = CGSize(width: 208, height: 156)   // 4:3 横版（顶/底）
-    static let verticalCard = CGSize(width: 156, height: 208)     // 3:4 竖版（左/右）
+    /// **比例随边反转 + 统一卡高 120**（2026-11-18 用户口径）。
+    ///
+    /// 用户原话：3:4 这个比例可以变尺寸，“50 不好算、80 也不好算，那就 40，按 40 来算”。
+    /// 于是取 **120 = 40×3** 作为唯一的卡高，两个方向只是转置：
+    /// - 顶/底（横排）→ **4:3 = 160×120**
+    /// - 左/右（纵排）→ **3:4 = 90×120**
+    ///
+    /// 为什么必须这么小：一屏要看得见 **5 张**。5×160 + 4×12 + 边距 = 932 宽；
+    /// 5×120 + 4×12 + 边距 = 760 高 —— 笔记本屏（可用 ~875）装得下。
+    /// 若坚持 208 宽的卡，一屏只能放 3 张半，那就回到“抽屉里翻东西”的老路上。
+    static let horizontalCard = CGSize(width: 160, height: 120)   // 4:3 横版（顶/底）
+    static let verticalCard = CGSize(width: 90, height: 120)      // 3:4 竖版（左/右）
 
     /// 内容井 = 卡内扣掉头部 18pt、Info 行与内边距后的可用区，比例**跟随卡本身**。
-    /// 填充方式见 `ContentWellFill`（一律 cover，2026-11-18 定案）。
+    /// 填充方式见 `ContentWellFill`（一律 cover，微博 / Instagram 逻辑：先看信息，不是先看图）。
 }

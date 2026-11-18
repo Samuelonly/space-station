@@ -41,8 +41,22 @@ struct StationCard: View {
         ClipKind.derive(types: item.contents.map(\.type), text: item.text)
     }
 
+    /// 卡宽 160 时给两个动作；90 的窄卡只给一个——再多就不是“快捷”，是把卡糊住。
+    private var visibleActionCount: Int { size.width < 120 ? 1 : 2 }
+    /// 窄卡上不放“换表示”和“预测”两个额外芯片（宽度真的没有）。
+    private var showsExtraChips: Bool { size.width >= 120 }
+
     private var headActions: [ActionDefinition] {
-        Array(ActionRegistry.headActions(for: kind).prefix(2))
+        Array(ActionRegistry.headActions(for: kind).prefix(visibleActionCount))
+    }
+
+    /// 右上动作组件实际占宽：每个芯片 16 + 2 间距，外加胶囊左右各 4。
+    /// 头部文字按这个值让位，小卡上也不会把名字挤到卡外。
+    private var actionClusterReserve: CGFloat {
+        var chips = headActions.count
+        if showsExtraChips, item.contents.count > 1 { chips += 1 }
+        if showsExtraChips, predictedAction != nil { chips += 1 }
+        return CGFloat(max(chips, 1)) * 18 + 8
     }
 
     private var predictedAction: ActionDefinition? {
@@ -60,20 +74,21 @@ struct StationCard: View {
                 Spacer(minLength: 0)
                 infoLine
             }
-            .padding(8)
+            .padding(contentPadding)
             .frame(width: size.width, height: size.height, alignment: .topLeading)
             .clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
 
             // [A-3] 动作组件：右上角、hover 才显形（§17.4），不再占底部一行。
             actionCluster
-                .padding(6)
+                .padding(contentPadding - 2)
                 .frame(width: size.width, height: size.height, alignment: .topTrailing)
                 .opacity(isHovering ? 1 : 0)
                 .allowsHitTesting(isHovering)
                 .animation(StationMetrics.hoverAnimation, value: isHovering)
 
-            // 选中只换“边”，不盖颜色（2026-11-18 用户口径）。
-            if effectiveSelected { selectionBorder }
+            // [A-4] hover 只让**卡自己的边**亮起来（在上面 background 里画）；
+            // 蓝色实线只属于“选中”，两者不再混用一套视觉。
+            if isSelected { selectionBorder }
         }
         .overlay(alignment: .bottomLeading) {
             if showPrediction, let predictedAction {
@@ -131,46 +146,64 @@ struct StationCard: View {
         }
     }
 
-    // MARK: - 背景 / 选中 / 光效（§21.6 玻璃 + 描边，不做几何缩放）
+    // MARK: - 背景 / 选中 / 光效（§21.6 玻璃 + 描边）
 
-    private var background: some View {
+    private var shape: RoundedRectangle {
         RoundedRectangle(cornerRadius: radius, style: .continuous)
-            // **卡比壳更实**：轨道壳是 0.55 的薄胶，卡用 regularMaterial 不透明地压在上面，
-            // 这样卡是“浮在桌面上的实物”，而不是“叠了第二层玻璃的灰雾”。
-            .fill(.regularMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
-            .borderedBackground(
-                .primary.opacity(0.1),
-                lineWidth: StationMetrics.cardBgStroke,
-                shape: RoundedRectangle(cornerRadius: radius, style: .continuous)
-            )
-            .padding(-StationMetrics.innerPadding)
-            // [A-3] DockDoor 式观感：贴外柔光 + 顶部受光边，只改光不改几何。
-            .shadow(
-                color: .black.opacity(isHovering ? StationMetrics.hoverGlowOpacity : 0),
-                radius: isHovering ? StationMetrics.hoverGlowRadius : 0,
-                y: isHovering ? 3 : 0
-            )
-            .overlay {
-                RoundedRectangle(cornerRadius: radius, style: .continuous)
-                    .strokeBorder(
-                        LinearGradient(
-                            colors: [.white.opacity(isHovering ? StationMetrics.hoverRimOpacity : 0),
-                                     .white.opacity(0)],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        ),
-                        lineWidth: 1
-                    )
-                    .padding(-StationMetrics.innerPadding)
-                    .allowsHitTesting(false)
-            }
     }
 
-    /// 选中态 = **一圈算出来的蓝边**（画在卡自己的轮廓上，不再向内垫 6pt 飘在缝里）。
+    /// 卡内边距随卡宽收放：90pt 的窄卡用 8 会把内容井压成一条缝。
+    private var contentPadding: CGFloat { size.width < 120 ? 6 : 8 }
+
+    /// **卡 = 真玻璃 + 一层“压住它”的底色。**
+    ///
+    /// 层级关系（2026-11-18 用户口径，第三次校准）：
+    ///   壳  = 只有玻璃，桌面直接透上来，边淡到看不见；
+    ///   卡  = 同一层玻璃，但上面压 72% 的系统底色 —— 所以卡是**实物**，不是第二层雾。
+    /// 上一版卡用 `.regularMaterial` 且整体没有底色，又和壳一起被 `.opacity(0.55)`
+    /// 拖成半透明，结果壳和卡一样灰，卡片“浮不起来”。
+    private var background: some View {
+        ZStack {
+            VibrancyView(
+                material: .underWindowBackground,
+                blending: .behindWindow,
+                cornerRadius: radius
+            )
+            Color(nsColor: .windowBackgroundColor).opacity(0.72)
+        }
+        .clipShape(shape)
+        .overlay {
+            shape.strokeBorder(.primary.opacity(0.08), lineWidth: 1)
+        }
+        .padding(-StationMetrics.innerPadding)
+        .shadow(
+            color: .black.opacity(isHovering ? StationMetrics.hoverGlowOpacity : 0),
+            radius: isHovering ? StationMetrics.hoverGlowRadius : 0,
+            y: isHovering ? 3 : 0
+        )
+        // **hover = 渲染卡片自己的边缘**（用户 2026-11-18 反复强调）。
+        // 不是盖一层半透明色块，也不是缩放把内容糊掉：只是让这一圈边亮起来，
+        // 光从左上进来、往右下走。内容像素一个都不动。
+        .overlay {
+            shape
+                .strokeBorder(
+                    LinearGradient(
+                        colors: [.white.opacity(isHovering ? StationMetrics.hoverRimOpacity : 0),
+                                 .white.opacity(isHovering ? StationMetrics.hoverRimOpacity * 0.15 : 0)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1
+                )
+                .padding(-StationMetrics.innerPadding)
+                .allowsHitTesting(false)
+        }
+    }
+
+    /// 选中态 = **一圈算出来的蓝边**（画在卡自己的轮廓上，不向内垫、不盖蒙版）。
     /// 以前是“整卡盖 40% 蓝”＋“外圈描边”，等于给内容蒙了层蓝纱，越选越看不清。
     private var selectionBorder: some View {
-        RoundedRectangle(cornerRadius: radius, style: .continuous)
+        shape
             .strokeBorder(Color.accentColor, lineWidth: StationMetrics.selectionStrokeWidth)
             .shadow(color: Color.accentColor.opacity(0.35),
                     radius: StationMetrics.selectionGlowRadius)
@@ -183,7 +216,7 @@ struct StationCard: View {
         HStack(spacing: 4) {
             iconView
             Text(displayName)
-                .font(.system(size: 10))
+                .font(.system(size: size.width < 120 ? 9 : 10))
                 .lineLimit(1)
                 .truncationMode(.tail)
                 .foregroundStyle(.secondary)
@@ -191,7 +224,7 @@ struct StationCard: View {
         }
         .frame(height: StationMetrics.headerHeight)
         // hover 时给右上动作组件让位，文字尾部截断，绝不把按钮挤到卡外。
-        .padding(.trailing, isHovering ? StationMetrics.actionClusterReserve : 0)
+        .padding(.trailing, isHovering ? actionClusterReserve : 0)
         .animation(StationMetrics.hoverAnimation, value: isHovering)
     }
 
@@ -268,8 +301,8 @@ struct StationCard: View {
 
     private var textContent: some View {
         Text(bodyText)
-            .font(.system(size: 12, weight: .medium))
-            .lineLimit(isLandscape ? 3 : 5)
+            .font(.system(size: size.width < 120 ? 10.5 : 12, weight: .medium))
+            .lineLimit(isLandscape ? 3 : 4)
             .truncationMode(.tail)
             .frame(maxWidth: .infinity, alignment: .topLeading)
     }
@@ -286,16 +319,20 @@ struct StationCard: View {
 
     private var infoLine: some View {
         Text(infoText)
-            .font(.system(size: 9))
+            .font(.system(size: size.width < 120 ? 8.5 : 9))
             .foregroundStyle(.secondary)
             .lineLimit(1)
-            .minimumScaleFactor(0.8)
+            .minimumScaleFactor(0.75)
             .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var infoText: String {
         var parts = [Self.relativeTime(item.lastCopiedAt)]
-        if let second = secondaryInfo { parts.append(second) }
+        // 窄卡（90pt）放不下“3 分钟前 · 1.2 MB · ×2”，只留时间与次数；
+        // 反正完整信息 hover 有 tooltip、QuickLook 里有全貌。
+        if size.width >= 120 {
+            if let second = secondaryInfo { parts.append(second) }
+        }
         if item.numberOfCopies > 1 { parts.append("×\(item.numberOfCopies)") }
         return parts.joined(separator: " · ")
     }
@@ -357,11 +394,11 @@ struct StationCard: View {
                 .help(displayHelp(for: action))
             }
 
-            if item.contents.count > 1 {
+            if showsExtraChips, item.contents.count > 1 {
                 chipButton(symbol: "square.on.square", help: "切换另一种表示") { onFlavor() }
             }
 
-            if let predictedAction {
+            if showsExtraChips, let predictedAction {
                 chipButton(symbol: "arrow.up.forward.app", help: "预测：\(predictedAction.label)") {
                     withAnimation(StationMetrics.hoverAnimation) { showPrediction.toggle() }
                 }
