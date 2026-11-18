@@ -39,6 +39,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.panel.isPresented ?? false
         }
 
+        // 换边：stationState.edge 是唯一真源，面板的“收进→延迟→展开”由这里驱动。
+        observeEdgeChanges()
+
         // M1 engine startup: storage healing -> load -> capture hook -> timer.
         Task { @MainActor in
             try? Storage.shared.cleanupOrphanedContents()
@@ -70,6 +73,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
         togglePanel()
         return true
+    }
+
+    /// 观察换边：设置里改了 `stationState.edge` → 面板先收进、静置、再在新边展开。
+    /// 用 `withObservationTracking` 单点订阅并自重挂载（改动只会发生在主线程）。
+    private func observeEdgeChanges() {
+        withObservationTracking {
+            _ = stationState.edge
+        } onChange: { [weak self] in
+            Task { @MainActor in
+                guard let self else { return }
+                self.panel.switchEdge(to: self.stationState.edge)
+                self.observeEdgeChanges()
+            }
+        }
     }
 
     func applicationWillTerminate(_ notification: Notification) {

@@ -29,6 +29,7 @@ enum SelfCheck {
 
     static func runAll() -> [Item] {
         classification() + purify() + oneLevel() + thumbnail() + resolver() + layout()
+            + memoryTidy()
     }
 
     /// 命令行入口：打印 + 返回是否全绿。
@@ -191,6 +192,41 @@ enum SelfCheck {
             StationMetrics.glyphSize == 16 && StationMetrics.actionGlyphSize == 14
                 && StationMetrics.actionChipSize == 16,
             "\(Int(StationMetrics.glyphSize)) / \(Int(StationMetrics.actionGlyphSize))"
+        ))
+
+        return items
+    }
+
+    // MARK: - 收起后的内存整理：频率闸（MemoryTidy.shouldRun，纯函数）
+
+    /// 频率定错了会两头难受：太频繁 = 每次打开都重新解码、费电；太稀疏 = 常驻白占。
+    /// 所以把这四条钉死，改数值前先跑一遍。
+    private static func memoryTidy() -> [Item] {
+        let now = 1_000_000.0
+        let interval = MemoryTidy.minimumInterval
+        var items: [Item] = []
+
+        items.append(check(
+            "内存整理·从未跑过 → 允许",
+            MemoryTidy.shouldRun(lastRunAt: 0, now: now, lowPowerMode: false)
+        ))
+        items.append(check(
+            "内存整理·299s 前跑过 → 跳过",
+            !MemoryTidy.shouldRun(lastRunAt: now - 299, now: now, lowPowerMode: false)
+        ))
+        items.append(check(
+            "内存整理·301s 前跑过 → 允许",
+            MemoryTidy.shouldRun(lastRunAt: now - 301, now: now, lowPowerMode: false)
+        ))
+        items.append(check(
+            "内存整理·低电量模式 → 一律跳过",
+            !MemoryTidy.shouldRun(lastRunAt: 0, now: now, lowPowerMode: true)
+                && !MemoryTidy.shouldRun(lastRunAt: now - 3600, now: now, lowPowerMode: true)
+        ))
+        items.append(check(
+            "内存整理·间隔 = 300s",
+            interval == 300,
+            "\(Int(interval))s"
         ))
 
         return items

@@ -23,6 +23,26 @@ enum EdgePosition: String, CaseIterable, Sendable {
     /// Which screen edge the rail hugs.
     var isVerticalEdge: Bool { !scrollsHorizontally }
 
+    /// 设置页显示名（短、顺口）。
+    var cnLabel: String {
+        switch self {
+        case .top: return "顶部"
+        case .bottom: return "底部"
+        case .left: return "左侧"
+        case .right: return "右侧"
+        }
+    }
+
+    /// 设置页图标：箭头指向所贴的那条边。
+    var symbolName: String {
+        switch self {
+        case .top: return "arrow.up.to.line"
+        case .bottom: return "arrow.down.to.line"
+        case .left: return "arrow.left.to.line"
+        case .right: return "arrow.right.to.line"
+        }
+    }
+
     // MARK: - Preference persistence (UserDefaults, no SPM dependency)
     private static let storageKey = "com.samuelonly.spacestation.dockEdge"
     nonisolated(unsafe) private static let ud = UserDefaults.standard

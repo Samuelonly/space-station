@@ -31,6 +31,8 @@ final class Diagnostics: @unchecked Sendable {
         var rejections: [Rejection] = []
         var unimplemented: [String] = []
         var cleanExit = true
+        var tidyRuns = 0
+        var tidyFreedBytes = 0
     }
 
     struct Check: Sendable, Identifiable {
@@ -48,6 +50,8 @@ final class Diagnostics: @unchecked Sendable {
     private var history = 0
     private var rejections: [Rejection] = []
     private var unimplemented: [String] = []
+    private var tidyRuns = 0
+    private var tidyFreedBytes = 0
 
     private static let maxLog = 20
     private static let cleanExitKey = "SS.lastCleanExit"
@@ -90,6 +94,14 @@ final class Diagnostics: @unchecked Sendable {
         lock.unlock()
     }
 
+    /// 收起后的内存整理（§22.14）：记次数与最近一次释放量，用来判断频率定得对不对。
+    func recordMemoryTidy(freedBytes: Int) {
+        lock.lock()
+        tidyRuns += 1
+        tidyFreedBytes = freedBytes
+        lock.unlock()
+    }
+
     // MARK: - 读取
 
     func snapshot() -> Snapshot {
@@ -105,6 +117,8 @@ final class Diagnostics: @unchecked Sendable {
         snap.rejections = rejections
         snap.unimplemented = unimplemented
         snap.cleanExit = UserDefaults.standard.bool(forKey: Self.cleanExitKey)
+        snap.tidyRuns = tidyRuns
+        snap.tidyFreedBytes = tidyFreedBytes
         return snap
     }
 

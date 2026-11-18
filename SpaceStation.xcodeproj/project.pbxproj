@@ -75,6 +75,7 @@
 		A75BC08E1C4A160246D315F3 /* SelfCheck.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F588C82E9A87058DC501584 /* SelfCheck.swift */; };
 		AA77E1DFCBCA687D08F89CE8 /* ScrollCaptureEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 834044FCDD15DD4170826305 /* ScrollCaptureEngine.swift */; };
 		ADC3E289DD4B8819ED20CB53 /* ThumbnailCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96C182FAFB8CDC27834F9906 /* ThumbnailCache.swift */; };
+		B042E0693E4845E40C888894 /* MemoryTidy.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABDFBAD45B895FCDBB42A598 /* MemoryTidy.swift */; };
 		B578028C81DCD3AC69F900E7 /* OCRService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C8B1F81BBD265156CCEF5DF /* OCRService.swift */; };
 		B8BF728AA3BF3CA1F90EA822 /* CloudTranslationProviders.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8BEA338CFBDB7E266972DB6 /* CloudTranslationProviders.swift */; };
 		BACD86BE6187AE3E510151E0 /* ScreenCaptureService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C82BE3C767CCBA53119B2574 /* ScreenCaptureService.swift */; };
@@ -196,6 +197,7 @@
 		A290ADDB17656FF10A5E40AC /* GoogleOCRProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoogleOCRProvider.swift; sourceTree = "<group>"; };
 		A33C110738F92BC2C4A1CB70 /* InContextStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InContextStatus.swift; sourceTree = "<group>"; };
 		A89BE85330173266047C1B06 /* TranslatePopupSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslatePopupSession.swift; sourceTree = "<group>"; };
+		ABDFBAD45B895FCDBB42A598 /* MemoryTidy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoryTidy.swift; sourceTree = "<group>"; };
 		ACD52FD42900E45A0050E9CB /* CustomOCRProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomOCRProvider.swift; sourceTree = "<group>"; };
 		AD8FD1387090A52EF7DA0DC2 /* ServiceProtocols.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServiceProtocols.swift; sourceTree = "<group>"; };
 		B02215FE5FADECE382E9B035 /* Clipboard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Clipboard.swift; sourceTree = "<group>"; };
@@ -495,6 +497,7 @@
 			children = (
 				B02215FE5FADECE382E9B035 /* Clipboard.swift */,
 				7BE5EF2026182C63EEDF61A1 /* Diagnostics.swift */,
+				ABDFBAD45B895FCDBB42A598 /* MemoryTidy.swift */,
 				2F588C82E9A87058DC501584 /* SelfCheck.swift */,
 				874BDA5E171A08EF8F9F6D56 /* Sorter.swift */,
 				B1F5D2EE00161116D2A2A52B /* SourceAppResolver.swift */,
@@ -703,6 +706,7 @@
 				157CAFFAB141BAF9F3AC4EEB /* L10n.swift in Sources */,
 				BDD63E978FAC26063A0DB2BA /* LocalShortcut.swift in Sources */,
 				0CDEB9012634C141F37B7629 /* MainThreadWatchdog.swift in Sources */,
+				B042E0693E4845E40C888894 /* MemoryTidy.swift in Sources */,
 				21C969A4269CF66C592C81B9 /* MiniFinder.swift in Sources */,
 				CA7DB22944F2ECAA768B3EAB /* NavBar.swift in Sources */,
 				1DC2266DA77241F425E99074 /* NoteComposer.swift in Sources */,

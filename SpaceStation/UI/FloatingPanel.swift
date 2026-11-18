@@ -1,4 +1,5 @@
 import AppKit
+import QuartzCore
 import SwiftUI
 
 /// Floating, non-activating panel. M0 keeps only the engine base's window traits:
@@ -7,6 +8,16 @@ import SwiftUI
 @MainActor
 final class FloatingPanel<Content: View>: NSPanel, NSWindowDelegate {
     private(set) var isPresented = false
+    /// 换边动画进行中：这期间窗口被隐藏/失焦都不算“用户收起”，不得触发 close。
+    private var isSwitchingEdge = false
+    /// 收起 → 换边 → 展开之间的静置时间。
+    /// 窗口不可见时改尺寸，SwiftUI 会重排 6 张卡并按新朝向重新取图；
+    /// 留一拍再显示，用户看到的就是“直接出现在新位置”，而不是一次可见的抖动。
+    private let switchDelay: Duration = .milliseconds(160)
+    private let collapseDuration: TimeInterval = 0.12
+    private let expandDuration: TimeInterval = 0.14
+    /// “收进”时朝屏幕边滑进去的距离（只平移、不改尺寸 —— 不会触发重排）。
+    private let collapseSlide: CGFloat = 12
     private let statusBarButton: NSStatusBarButton?
     private var edge: EdgePosition
     private let stationState: StationState
@@ -66,22 +77,81 @@ final class FloatingPanel<Content: View>: NSPanel, NSWindowDelegate {
     }
 
     func open() {
+        // 面板重新打开：还没落地的“收起后整理”作废，否则会在用户正在看的时候动手。
+        MemoryTidy.cancelPending()
         NSApp.activate(ignoringOtherApps: true)
         // stationState is the source of truth: a dock-edge change made between
         // init and open (e.g. QA hook or settings) must be reflected here.
         edge = stationState.edge
         applyEdge(edge)
+        alphaValue = 1
         orderFrontRegardless()
         makeKey()
         isPresented = true
         statusBarButton?.isHighlighted = true
     }
 
-    /// Switch dock edge (M2 four-edge docking). Resizes the panel and repositions
-    /// it on the chosen screen edge; live even while the panel is open.
-    func setEdge(_ newEdge: EdgePosition) {
-        edge = newEdge
-        if isPresented { applyEdge(newEdge) }
+    /// Switch dock edge (M2 four-edge docking).
+    ///
+    /// **换边必须“收进 → 等 → 在新位置展开”**（用户 2026-11-18 口径）：
+    /// 直接改一个可见窗口的尺寸，等于在用户眼前做一次重排（6 张卡 × 新朝向 ×
+    /// 缩略图重取），那就是肉眼可见的一顿。拆成三段后，重活全发生在窗口不可见期间。
+    ///
+    /// 1. **收进**：朝当前贴的屏幕边滑 12pt + 淡出（只平移不改尺寸，不会触发 SwiftUI 重排）；
+    /// 2. **静置** `switchDelay`：窗口已 orderOut，此时改尺寸、重新定位、让新朝向布局落地；
+    /// 3. **展开**：在新边淡入并 makeKey。
+    /// 面板本来就收着的话，没有“收进”可言，直接改尺寸就完事。
+    func switchEdge(to newEdge: EdgePosition) {
+        guard newEdge != edge else { return }
+
+        guard isPresented, isVisible, !isSwitchingEdge else {
+            edge = newEdge
+            applyEdge(newEdge)
+            return
+        }
+
+        isSwitchingEdge = true
+        // 换边不是“收起”，不触发行整理（否则用户来回切位置会被反复清缓存）。
+        MemoryTidy.cancelPending()
+
+        let slide = Self.slideVector(for: edge, distance: collapseSlide)
+        let collapsed = frame.offsetBy(dx: slide.width, dy: slide.height)
+
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = collapseDuration
+            context.timingFunction = CAMediaTimingFunction(name: .easeIn)
+            animator().alphaValue = 0
+            animator().setFrame(collapsed, display: true)
+        } completionHandler: { [weak self] in
+            Task { @MainActor in
+                guard let self else { return }
+                self.orderOut(nil)          // 彻底收起，不再吃焦点
+                self.alphaValue = 0
+                self.edge = newEdge
+                self.applyEdge(newEdge)     // 不可见时改尺寸 + 换边定位
+                try? await Task.sleep(for: self.switchDelay)
+                self.orderFrontRegardless()
+                self.makeKey()
+                self.isPresented = true
+                NSAnimationContext.runAnimationGroup { context in
+                    context.duration = self.expandDuration
+                    context.timingFunction = CAMediaTimingFunction(name: .easeOut)
+                    self.animator().alphaValue = 1
+                } completionHandler: { [weak self] in
+                    Task { @MainActor in self?.isSwitchingEdge = false }
+                }
+            }
+        }
+    }
+
+    /// 朝该边“滑进去”的方向向量（屏幕坐标：y 向上）。
+    private static func slideVector(for edge: EdgePosition, distance: CGFloat) -> CGSize {
+        switch edge {
+        case .top:    return CGSize(width: 0, height: distance)
+        case .bottom: return CGSize(width: 0, height: -distance)
+        case .left:   return CGSize(width: -distance, height: 0)
+        case .right:  return CGSize(width: distance, height: 0)
+        }
     }
 
     private func applyEdge(_ edge: EdgePosition) {
@@ -94,9 +164,13 @@ final class FloatingPanel<Content: View>: NSPanel, NSWindowDelegate {
         super.close()
         isPresented = false
         statusBarButton?.isHighlighted = false
+        // 收起后安排一次“悄悄整理”（频率门 / 电源门 / 静置门见 MemoryTidy）。
+        MemoryTidy.scheduleAfterCollapse()
     }
 
     func windowDidResignKey(_ notification: Notification) {
+        // 换边过程中窗口会被主动 orderOut，这不是用户收起，不能连锁 close。
+        guard !isSwitchingEdge else { return }
         close()
     }
 

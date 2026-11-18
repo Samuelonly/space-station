@@ -87,6 +87,7 @@ struct DiagnosticsPanel: View {
             row("缩略图磁盘", "\(Self.mb(snapshot.diskBytes)) / 上限 \(Self.mb(ThumbnailCache.diskByteLimit))",
                 warn: snapshot.diskBytes > ThumbnailCache.diskByteLimit)
             row("缩略图命中", "\(snapshot.thumbnailHits) 次命中 / \(snapshot.thumbnailMisses) 次回源", warn: false)
+            row("收起后整理", "\(snapshot.tidyRuns) 次 · 最近释放 \(Self.mb(Int64(snapshot.tidyFreedBytes))) · 间隔 \(Int(MemoryTidy.minimumInterval))s", warn: false)
             row("库内卡片", "\(snapshot.historyCount) 张", warn: false)
         }
     }

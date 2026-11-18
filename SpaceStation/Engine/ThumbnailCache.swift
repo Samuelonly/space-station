@@ -282,6 +282,34 @@ final class ThumbnailCache: @unchecked Sendable {
         }
     }
 
+    // MARK: - 收起后的水位整理（由 MemoryTidy 调用，不碰磁盘）
+
+    /// 把内存里的解码位图降到 `keepFraction × 软目标`，按 lastAccess 从最旧开始淘汰。
+    /// 返回释放的字节数（0 = 本来就在水位以下，什么也没做）。
+    @discardableResult
+    func trimMemory(keepFraction: Double = 0.4) -> Int {
+        let target = Int(Double(Self.softMemoryBytes) * max(0, min(1, keepFraction)))
+
+        lock.lock()
+        let before = totalBytes
+        if totalBytes > target {
+            // 最近访问的排在前面，从尾部（最久没用的）开始扔；可见项永不扔。
+            let candidates = memory
+                .filter { !visibleKeys.contains($0.value.baseKey) }
+                .sorted { $0.value.lastAccess > $1.value.lastAccess }
+            for (key, _) in candidates.reversed() {
+                if totalBytes <= target { break }
+                removeLocked(key)
+            }
+        }
+        let freed = before - totalBytes
+        let after = totalBytes
+        lock.unlock()
+
+        if freed > 0 { Diagnostics.shared.setThumbnailBytes(after) }
+        return freed
+    }
+
     // MARK: - 可见性（⑨ rail 上报）
 
     func markVisible(_ keys: [String]) {

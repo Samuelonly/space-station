@@ -79,6 +79,8 @@ struct SettingsView: View {
 
     var body: some View {
         TabView {
+            positionTab
+                .tabItem { Label("位置", systemImage: "arrow.up.and.down.and.arrow.left.and.right") }
             keymapTab
                 .tabItem { Label("快捷键", systemImage: "keyboard") }
             privacyTab
@@ -86,6 +88,64 @@ struct SettingsView: View {
         }
         .frame(width: 440, height: 360)
         .onDisappear { recorder.end() }
+    }
+
+    // MARK: - Position tab (§18.5 四边停靠)
+
+    private var positionTab: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("🧭 设置 · 位置").font(.headline)
+                Text("站体贴在屏幕的哪一边").font(.caption).foregroundStyle(.secondary)
+            }
+
+            HStack(spacing: 8) {
+                ForEach(EdgePosition.allCases, id: \.self) { candidate in
+                    let active = state.edge == candidate
+                    Button {
+                        switchEdge(to: candidate)
+                    } label: {
+                        VStack(spacing: 5) {
+                            Image(systemName: candidate.symbolName).font(.system(size: 15))
+                            Text(candidate.cnLabel).font(.system(size: 11, weight: .medium))
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 9)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(active ? Color.accentColor.opacity(0.18)
+                                             : Color.secondary.opacity(0.10))
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .strokeBorder(active ? Color.accentColor : .clear, lineWidth: 1.5)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+
+            Text("顶/底 = 横排卡（4:3），左/右 = 竖排卡（3:4）。换边时站体会先收进、静置一瞬、再在新位置展开——重活都发生在你看不见的时候。")
+                .font(.caption2).foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Spacer(minLength: 0)
+            HStack {
+                Text("改动立即生效").font(.caption2).foregroundStyle(.secondary)
+                Spacer()
+                Button("完成") { SettingsWindowController.shared.close() }
+                    .keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding(16)
+    }
+
+    /// 只改 `stationState.edge`：面板的“收进 → 延迟 → 展开”由 AppDelegate 观察驱动，
+    /// 这里绝不直接动窗口，避免出现两条换边路径。
+    private func switchEdge(to candidate: EdgePosition) {
+        guard state.edge != candidate else { return }
+        EdgePosition.saved = candidate
+        state.edge = candidate
     }
 
     // MARK: - Keymap tab (§19.4 / §21.9)
