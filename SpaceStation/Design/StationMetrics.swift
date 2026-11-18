@@ -218,8 +218,24 @@ enum StationMetrics {
     static let horizontalCard = CGSize(width: 90, height: 120)    // 3:4 竖版（顶/底）
     static let verticalCard = CGSize(width: 120, height: 90)      // 4:3 横版（左/右）
 
-    /// 内容井 = 卡内扣掉头部 18pt、Info 行与内边距后的可用区，比例**跟随卡本身**。
-    /// 填充方式见 `ContentWellFill`（一律 cover，微博 / Instagram 逻辑：先看信息，不是先看图）。
+    /// **单边伸缩的两个闸门**（照 DockDoor `Window Image Sizing Calculations.swift`）。
+    ///
+    /// 上一版这里只有「clamp 比例到 2:3~3:2」一条，而且 clamp 完还 cover ——
+    /// 顺序错了：先把形状定死、再往里硬塞内容，四张里三张必然被裁成局部特写。
+    ///
+    /// DockDoor 的顺序是反的：**厚度固定 → 另一维 = 厚度 × 内容比例 → 撞闸门才收**。
+    /// 它有两个闸门，我们照抄：
+    ///  - `cardMinSide`  ← `dynamicSwitcherMinimumImageWidth = 50`。
+    ///    680×2000 的细长图算出来只有 41 宽，被抬到 52，图 fit 进去左右各留 5.5pt 缝。
+    ///  - `cardMaxStretch` ← `dynamicMaxAspectRatio = 1.5`。超过就裁，但只裁极端的那一小撮。
+    ///
+    /// 夹在中间的比例（16:10、4:3、9:19.5、3:4）**一个百分点都不裁**，
+    /// 这才是「一致性」的来源：等高不叫一致，**等厚**才叫一致。
+    static let cardMinSide: CGFloat = 52
+    static let cardMaxStretch: CGFloat = 1.5
+
+    /// 内容井：图片卡不再有「井」这个概念——图直接铺到圆角边（见 `StationCard.imageCard`）。
+    /// 填充方式见 `ContentWellFill`（卡片形状已贴合内容，所以一律 fit，不再裁）。
 
     /// 卡内三段（头部 / 内容槽 / Info）之间的纵向间距。
     /// HTML `.group` 是 `gap:9px`，但它的卡高 236；我们的卡高 160，

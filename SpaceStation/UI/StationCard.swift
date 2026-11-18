@@ -31,6 +31,7 @@ struct StationCard: View {
     @State private var thumbnail: NSImage?
     @State private var thumbnailTint: NSColor?
     @State private var appInfo: SourceAppResolver.Info?
+    @State private var fileIcon: NSImage?
 
     private var effectiveSelected: Bool { isSelected || isHovering }
     /// 是不是「正在被指着/选中」——投影加深用。语义上等于 effectiveSelected。
@@ -82,6 +83,8 @@ struct StationCard: View {
             // 所以图铺满整卡时裁切量很小，不需要那个"窗口"。
             if kind == .image {
                 imageCard
+            } else if kind == .file {
+                fileCard
             } else {
                 textCard
             }
@@ -162,10 +165,9 @@ struct StationCard: View {
 
     /// 卡内边距：90pt 的窄卡用 8 会把内容压成一条缝，收到 5。
     private var contentPadding: CGFloat { min(size.width, size.height) < 100 ? 5 : 7 }
-    /// 文本卡的薄纸内边距（HTML `.sheet` padding: 9px @186 宽 → 按比例收到 5）。
-    private var sheetPadding: CGFloat { min(size.width, size.height) < 100 ? 5 : 6 }
-    /// 薄纸圆角：永远比卡小一圈，视觉上才是“卡里嵌了一张纸”。
-    private var sheetRadius: CGFloat { max(5, radius - 4) }
+    /// Info 行的让位高度。注意这是 **padding**，不是一条布局行——
+    /// 文本卡里已经没有 VStack 三段了（见 `textCard`）。
+    private var infoHeight: CGFloat { 11 }
 
     /// **卡 = 玻璃 + 渐变 + 顶部受光 + 描边 + 投影**，直接照 HTML `.group` 搬。
     ///
@@ -309,8 +311,11 @@ struct StationCard: View {
     ///   左下 = 相对时间（底部 28% 渐变托底，不是给整张卡盖蒙版）
     private var imageCard: some View {
         ZStack(alignment: .bottomLeading) {
-            // 主色铺底：缩略图未解码时，卡里是一块从画面取来的颜色，不是灰块。
-            Rectangle().fill(tintColor.opacity(0.65))
+            // 信箱底：主色 + 一层暗。fit 之后只有撞闸门的极端比例才会看见它，
+            // 但必须存在——否则那种图周围是透明的，卡会出现“破洞”。
+            Rectangle()
+                .fill(tintColor.opacity(0.30))
+                .overlay(Color.black.opacity(0.18))
 
             if let thumbnail {
                 Image(nsImage: thumbnail)
@@ -319,7 +324,6 @@ struct StationCard: View {
                     .aspectRatio(contentMode: imageContentMode)
                     .frame(width: size.width, height: size.height,
                            alignment: imageAlignment)
-                    .clipped()
             } else {
                 Image(systemName: "photo")
                     .font(.system(size: 18))
@@ -349,33 +353,150 @@ struct StationCard: View {
         }
         .frame(width: size.width, height: size.height)
         .clipShape(shape)
+        // 来源图标：浮层，不占布局。去掉上一版的圆形暗底——那在浅色图上是个黑点，
+        // 在深色图上又看不见。改成“图标自带投影”，任何底上都立得住且不抢镜。
         .overlay(alignment: .topLeading) {
             iconView
-                .padding(4)
-                .background(Circle().fill(.black.opacity(0.30)))
-                .padding(4)
+                .shadow(color: .black.opacity(0.55), radius: 2, y: 0.5)
+                .padding(6)
         }
     }
 
-    // MARK: - 文本卡：头部 + 薄纸 + Info
+    // MARK: - 文件卡：大图标 + 文件名（不是路径）
 
-    /// 文本卡保留三段（它没有图可以铺满），但**不套 viewport+sheet 双层**——
-    /// 在 90×120 的卡里套两层只会把可用面积切得更碎。这里只留一层薄纸
-    /// （HTML `.sheet` 的 `rgba(255,255,255,.045)`），文字从纸上浮出来。
-    private var textCard: some View {
-        VStack(alignment: .leading, spacing: StationMetrics.cardInnerSpacing) {
-            header
-            textContent
-                .padding(sheetPadding)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                .background {
-                    RoundedRectangle(cornerRadius: sheetRadius, style: .continuous)
-                        .fill(.white.opacity(StationMetrics.Glass.sheetFill))
+    /// **文件卡以前把 `file:///Users/samuelonly/Documents/...` 整条 URL 印在卡上。**
+    ///
+    /// 原因在 `HistoryItem.previewableText`：它对文件卡返回 `absoluteString`，
+    /// 于是 `generateTitle()` 把 URL 存成了 title，卡上就照抄。
+    /// 一张 90pt 的卡里印三行路径，等于什么都没说——用户认的是图标和文件名。
+    ///
+    /// 现在结构跟图片卡同一套：**内容（大图标 + 名字）铺满，浮层（时间）压底**。
+    /// 图标用 `NSWorkspace` 的真图标，不是 SF Symbol —— 文档、文件夹、.app、图片
+    /// 一眼就能分开，这才是 Finder 的语言。
+    private var fileCard: some View {
+        ZStack(alignment: .topLeading) {
+            VStack(spacing: 5) {
+                Group {
+                    if let fileIcon {
+                        Image(nsImage: fileIcon)
+                            .resizable()
+                            .interpolation(.high)
+                    } else {
+                        Image(systemName: item.isFolderCard ? "folder.fill" : "doc.fill")
+                            .resizable()
+                            .scaledToFit()
+                            .foregroundStyle(.white.opacity(0.34))
+                    }
                 }
-            infoLine
+                .frame(width: fileIconSide, height: fileIconSide)
+
+                Text(fileDisplayName)
+                    .font(.system(size: size.width < 100 ? 8.5 : 9.5, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.92))
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+                    .truncationMode(.middle)
+                    .minimumScaleFactor(0.75)
+            }
+            .padding(.horizontal, contentPadding)
+            .padding(.top, contentPadding)
+            .padding(.bottom, contentPadding + infoHeight + 2)
+            .frame(width: size.width, height: size.height, alignment: .top)
+
+            VStack(spacing: 0) {
+                Spacer(minLength: 0)
+                infoLine
+                    .padding(.horizontal, contentPadding)
+                    .padding(.bottom, contentPadding)
+            }
+            .frame(width: size.width, height: size.height, alignment: .bottomLeading)
+            .allowsHitTesting(false)
         }
-        .padding(contentPadding)
-        .frame(width: size.width, height: size.height, alignment: .topLeading)
+        .frame(width: size.width, height: size.height)
+        .clipShape(shape)
+    }
+
+    /// 图标边长：卡 90 宽 → 40；卡 120 宽 → 52。永远比卡窄一圈，四边留气。
+    private var fileIconSide: CGFloat {
+        max(28, min(size.width * 0.46, size.height * 0.40))
+    }
+
+    /// 文件名只留**最后一段**，多选时给出数量。绝不显示 `file://`。
+    private var fileDisplayName: String {
+        let urls = item.fileURLs
+        guard let first = urls.first else {
+            // 兜底：title 里可能已经存了 URL（老数据），剥掉协议头再取末段。
+            return Self.fileName(fromStoredTitle: item.title)
+        }
+        if urls.count > 1 { return "\(first.lastPathComponent) 等 \(urls.count) 项" }
+        return first.lastPathComponent
+    }
+
+    /// 老数据兜底：title 存的是 `file:///a/b/c.png` 时，取出 `c.png`。
+    private static func fileName(fromStoredTitle title: String) -> String {
+        let head = title.split(separator: "\n").first.map(String.init) ?? title
+        guard head.hasPrefix("file://") || head.hasPrefix("/") else { return title }
+        let decoded = head.removingPercentEncoding ?? head
+        if let url = URL(string: decoded), !url.lastPathComponent.isEmpty {
+            return url.lastPathComponent
+        }
+        return (decoded as NSString).lastPathComponent
+    }
+
+    // MARK: - 文本卡：文字直接印在卡上（没有内层纸）
+
+    /// **不再有「薄纸」这一层。**
+    ///
+    /// 上一版是 `VStack { header / textContent(带一张 sheet 背景) / infoLine }`。
+    /// 用户一眼看穿：「你这相当于给内容槽加了个安全区，它太大了，纯浪费地方留白」。
+    /// 对，那张 `sheet` 就是安全区的边界——卡在外、纸在内，等于卡里又开了一个窗口。
+    ///
+    /// HTML 原型里那张 `.sheet` 之所以成立，是因为它宽 186、高 236，纸和卡之间有 9px
+    /// 的余量可以看。我们的卡只有 90×120，还要塞 header + sheet + info 三段，
+    /// 结果每一段都只剩一条缝。
+    ///
+    /// 现在结构跟图片卡统一成**两层**：
+    ///   第一层 = 内容（文字从卡边加 padding 开始，直接印在玻璃上）
+    ///   第二层 = 浮层（顶部来源图标与名字、底部时间、右上动作；都带小面积压暗托底，
+    ///            但**不占布局高度**，所以内容不会因为它们而缩小）
+    ///
+    /// 唯一保留的"让位"是文字顶部的 `headerHeight` —— 否则第一行字会被图标压住。
+    /// 但它是 padding，不是一条分割线，视觉上不再有"卡里分了区"的感觉。
+    private var textCard: some View {
+        ZStack(alignment: .topLeading) {
+            textContent
+                .padding(.horizontal, contentPadding)
+                .padding(.top, contentPadding + StationMetrics.headerHeight)
+                .padding(.bottom, contentPadding + infoHeight)
+                .frame(width: size.width, height: size.height, alignment: .topLeading)
+
+            // 顶部 26pt 的轻微压暗：图标与名字在任何亮度的玻璃上都立得住。
+            // 这是**托底**，不是遮罩——它只覆盖最上面一条，且透明度 ≤ 0.18。
+            VStack(spacing: 0) {
+                LinearGradient(
+                    colors: [.black.opacity(0.18), .clear],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(height: StationMetrics.headerHeight + 8)
+                Spacer(minLength: 0)
+            }
+            .allowsHitTesting(false)
+
+            header
+                .padding(.horizontal, contentPadding)
+                .padding(.top, contentPadding)
+
+            VStack(spacing: 0) {
+                Spacer(minLength: 0)
+                infoLine
+                    .padding(.horizontal, contentPadding)
+                    .padding(.bottom, contentPadding)
+            }
+            .frame(width: size.width, height: size.height, alignment: .bottomLeading)
+            .allowsHitTesting(false)
+        }
+        .frame(width: size.width, height: size.height)
         .clipShape(shape)
     }
 
@@ -562,6 +683,11 @@ struct StationCard: View {
     private func loadSurfaces() async {
         appInfo = SourceAppResolver.shared.info(for: item.application)
 
+        // 文件卡：真图标（NSWorkspace）。走缓存，同一路径只问一次系统。
+        if kind == .file, fileIcon == nil, let url = item.fileURLs.first {
+            fileIcon = FileIconCache.icon(for: url.path)
+        }
+
         guard kind == .image, thumbnail == nil, let data = item.imageData else { return }
         let boxed = await Task.detached(priority: .userInitiated) { () -> BoxedThumb? in
             guard let image = ThumbnailCache.shared.image(forData: data) else { return nil }
@@ -598,5 +724,26 @@ struct StationCard: View {
         case .code: return "chevron.left.forwardslash.chevron.right"
         case .note: return "note.text"
         }
+    }
+}
+
+// MARK: - 文件图标缓存
+
+/// `NSWorkspace.icon(forFile:)` 每次都是磁盘 IO（拿 .app 图标要走 bundle 解析）。
+/// 滚动时一屏 5 张卡各问一次就够卡了，所以按路径缓存。
+///
+/// 不做异步：图标请求本身有系统缓存，首次 ~5ms，之后 <1ms；
+/// 而异步会带来“先灰块再变图标”的闪烁，比慢 5ms 更难看。
+enum FileIconCache {
+    nonisolated(unsafe) private static let cache = NSCache<NSString, NSImage>()
+
+    @MainActor
+    static func icon(for path: String) -> NSImage? {
+        if let hit = cache.object(forKey: path as NSString) { return hit }
+        guard FileManager.default.fileExists(atPath: path) else { return nil }
+        let icon = NSWorkspace.shared.icon(forFile: path)
+        icon.size = NSSize(width: 64, height: 64)
+        cache.setObject(icon, forKey: path as NSString)
+        return icon
     }
 }

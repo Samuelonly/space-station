@@ -36,26 +36,47 @@ enum EdgePosition: String, CaseIterable, Sendable {
         scrollsHorizontally ? StationMetrics.horizontalCard : StationMetrics.verticalCard
     }
 
-    /// **图片卡的宽度跟随图片比例，高度锁死。**
+    /// **图片卡：厚度固定，另一维 = 厚度 × 内容比例；撞闸门才收。**
     ///
-    /// 这是 DockDoor 的做法（`Window Image Sizing Calculations.swift`：
-    /// thickness 固定，另一维 = thickness × aspectRatio，clamp 到 `dynamicMaxAspectRatio = 1.5`），
-    /// 只是它固定在底部 dock，我们两条边都要成立。
+    /// 这是 DockDoor 的做法（`Window Image Sizing Calculations.swift`），
+    /// 但上一版我只抄了「clamp 到 dynamicMaxAspectRatio」这半句，漏掉了更重要的两件：
     ///
-    /// 为什么两条边都锁**高度**：
-    /// - 顶/底（横排）：高度锁 120，宽度在 80~180 之间伸缩 → 一排仍装得下 5 张；
-    /// - 左/右（纵排）：高度锁 90，宽度在 60~135 之间伸缩 → 一列装得下 5 张。
-    ///   纵向的瓶颈本来就是高度，如果让卡跟着竖图长到 260pt，一屏只剩 2 张，
-    ///   正是用户说的“能放的卡片太少”。
+    /// 1. **它 clamp 的不是比例，是面板上限**。单卡尺寸走的是
+    ///    `width = min(thickness × aspectRatio, maxWidth)`，另有一个 **50pt 最小边**兜底
+    ///    （`dynamicSwitcherMinimumImageWidth = 50`）。所以 680×2000 的细长图不是被拉成
+    ///    2:3 的卡再 cover（那样必裁一半），而是变成一张 52×120 的窄条，图 fit 进去、
+    ///    左右各留 5pt 缝。**它不裁图。**
+    ///
+    /// 2. **clamp 完就 fit，不是 cover**。卡片形状已经贴合内容，fit 才不会留白；
+    ///    先定死形状再 fit 才会变成一条缝。上一版两难是自己造的。
+    ///
+    /// 所以现在：
+    /// - 顶/底（横排）：高度 = 卡高（120），宽度 = 120 × 比例，夹在 [52, 180]；
+    /// - 左/右（纵排）：宽度 = 卡宽（120），高度 = 120 / 比例，夹在 [63, 135]。
+    ///   纵排的瓶颈是高度，所以这里必须收得比横排更狠——用户原话「左右侧栏高度受限，
+    ///   能放的卡片太少，所以它是 4:3 横版」。
     ///
     /// 卡宽不齐**不是缺陷**：DockDoor 的窗口预览就是一排宽窄不一的卡，
     /// 因为每张卡都完整地是自己的内容。等宽卡片只能靠裁切或留白换，
-    /// 而这两个正是用户已经否掉的（“局部特写”和“一条缝”）。
+    /// 而这两个正是用户已经否掉的（「局部特写」和「一条缝」）。
     func cardSize(imageAspect: CGFloat?) -> CGSize {
-        guard let imageAspect else { return cardSize }
-        let ratio = ContentWellFill.clampAspect(imageAspect)
-        let thickness = cardSize.height
-        return CGSize(width: (thickness * ratio).rounded(), height: thickness)
+        let base = cardSize
+        guard let imageAspect, imageAspect.isFinite, imageAspect > 0 else { return base }
+
+        if scrollsHorizontally {
+            let thickness = base.height
+            let raw = thickness * imageAspect
+            let width = min(max(raw, StationMetrics.cardMinSide),
+                            thickness * StationMetrics.cardMaxStretch)
+            return CGSize(width: width.rounded(), height: thickness)
+        } else {
+            let thickness = base.width
+            let raw = thickness / imageAspect
+            // 纵排的下限比横排宽一点：卡高低于 63 就放不下 Info 行。
+            let floor = max(StationMetrics.cardMinSide, base.height * 0.7)
+            let height = min(max(raw, floor), thickness * StationMetrics.cardMaxStretch)
+            return CGSize(width: thickness, height: height.rounded())
+        }
     }
 
     /// Which screen edge the rail hugs.

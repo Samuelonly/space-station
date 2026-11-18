@@ -200,7 +200,10 @@ final class Diagnostics: @unchecked Sendable {
             detail: "macOS \(os.majorVersion).\(os.minorVersion)"
         ))
 
-        // 10. 进程唯一性（0.6.0 会换成真正的 SingleInstanceGuard）
+        // 10. 进程唯一性。**这只是报告，不是闸门**——真正的阻止在
+        // `AppDelegate.applicationWillFinishLaunching` 的 `SingleInstanceGuard`
+        // 和 Info.plist 的 `LSMultipleInstancesProhibited`。
+        // 2026-11-18 的教训：光有这条检查，`open -n` 一按还是两个图标。
         let instances = NSRunningApplication.runningApplications(
             withBundleIdentifier: Bundle.main.bundleIdentifier ?? ""
         ).count

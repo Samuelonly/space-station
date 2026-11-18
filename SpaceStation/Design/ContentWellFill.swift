@@ -2,65 +2,85 @@ import CoreGraphics
 import ImageIO
 import SwiftUI
 
-/// 内容井的填充规则（纯函数 + 单一常量，L1 可测）。
+/// 图片卡的取景契约（纯函数 + 单一常量，L1 可测）。
 ///
-/// **2026-11-18 第二次修正：cover 保留，但卡片形状必须先适配内容。**
+/// **2026-11-18 第三次修正：fit，而且这次是对的。**
 ///
-/// 上一版把「一律 cover」当成独立规则，结果在 90×120 的卡里 cover 一张 9:19.5 的
-/// 手机截图 = 只剩中间一小块，用户原话是「相当于局部特写，太奇怪了」。
+/// 前两稿在 cover / fit 之间来回翻，是因为把两件事混成一件：
+/// 「填充方式」和「谁来适配谁」。真相是**顺序决定一切**：
 ///
-/// 读了 DockDoor 才发现它为什么敢用 `scaledToFit`：
-/// 它不是「固定卡形状再塞图」，而是**先按图片比例把卡片宽度算出来**
-/// （`Window Image Sizing Calculations.swift`：thickness 固定，width = thickness × aspectRatio，
-///   再 clamp 到 `dynamicMaxAspectRatio = 1.5`），所以 fit 几乎不留白。
+/// | 顺序 | 用什么填充 | 结果 |
+/// |---|---|---|
+/// | 先定死卡形状，再塞图 | cover | 局部特写（一张 9:19.5 截图只剩中间一块） |
+/// | 先定死卡形状，再塞图 | fit | 一条细缝 + 大片留白 |
+/// | **先量内容比例定卡形状，再塞图** | **fit** | **图完整，留白 ≤ 5pt** |
 ///
-/// 我们的做法对齐它：**卡片形状跟随内容比例，clamp 在 2:3 ~ 3:2**。
-/// 于是 cover 的裁切量天然被限制在 33% 以内，既不会剩细缝，也不会变成局部特写。
-/// 「完整地看整张图」仍然交给 QuickLook，卡片只负责「一眼认出这是什么」。
+/// DockDoor 走的是第三行（`Window Image Sizing Calculations.swift`：
+/// thickness 固定 → 另一维 = thickness × 比例 → 撞 50pt / 1.5× 两个闸门才收），
+/// 所以它敢用 `scaledToFit`。我们现在卡形状已经贴合内容（`EdgePosition.cardSize`），
+/// 留白只剩极端比例撞闸门时的那几 pt，用主色铺底就看不见了。
+///
+/// 一句话：**卡跟着内容变形，所以图不需要被裁。**
 enum ContentWellFill {
     /// 唯一填充方式。改这个常量 = 改全站图片卡的取景规则。
-    static let contentMode: ContentMode = .fill
+    static let contentMode: ContentMode = .fit
 
-    /// **裁切锚点：顶部。**
+    /// 锚点：居中。
     ///
-    /// 竖图（9:19.5 的手机截图）即使卡片已经贴合比例，仍会有少量上下裁切 ——
-    /// 而截图的**信息几乎都在上半部**（状态栏、标题、第一屏内容），
-    /// 中间和底部往往是空白或键盘。所以锚点定在顶部：先保证看到开头。
-    static let alignment: Alignment = .top
+    /// 上一版定 `.top` 是为了「cover 竖图时先保住上半部信息」。
+    /// 现在不裁了，锚点的意义只剩「撞闸门的极端图，留白偏哪头」——
+    /// 居中时两侧留白对称，比顶部对齐更像「一张完整放进框里的图」。
+    static let alignment: Alignment = .center
 
-    // MARK: - 形状适配（DockDoor: dynamicMaxAspectRatio = 1.5）
+    // MARK: - 形状边界（只用于自检与文档，不再参与 clamp）
 
-    /// 卡片宽高比允许的范围 **2:3 ~ 3:2**。超出这个范围的图，宁可裁一点也不许
-    /// 把卡拉成一条缝或一根柱——那是“局部特写”和“细缝”两个极端。
-    static let minAspect: CGFloat = 1.0 / 1.5
-    static let maxAspect: CGFloat = 1.5
+    /// 单边允许的伸缩区间，与 `StationMetrics.cardMinSide / cardMaxStretch` 同源。
+    static var minSide: CGFloat { StationMetrics.cardMinSide }
+    static var maxStretch: CGFloat { StationMetrics.cardMaxStretch }
 
-    static func clampAspect(_ ratio: CGFloat) -> CGFloat {
-        guard ratio.isFinite, ratio > 0 else { return 1 }
-        return min(max(ratio, minAspect), maxAspect)
-    }
+    // MARK: - fit 语义
 
-    /// cover 在最坏情况下的裁切比例（= 1 − 2/3 ≈ 0.333）。
-    /// 这条是“不再出现局部特写”的可测判据：任何卡的裁切率都不得超过它。
-    static var maxCropRatio: Double { 1 - Double(minAspect) }
-
-    /// cover 之后的渲染尺寸（图片按比例放大到**两个方向都不小于井**）。
+    /// fit 之后的渲染尺寸（图片按比例缩到**两个方向都不大于井**）。
     static func renderedSize(image: CGSize, well: CGSize) -> CGSize {
         guard image.width > 0, image.height > 0, well.width > 0, well.height > 0 else { return well }
-        let scale = max(well.width / image.width, well.height / image.height)
+        let scale = min(well.width / image.width, well.height / image.height)
         return CGSize(width: image.width * scale, height: image.height * scale)
     }
 
-    /// 是否铺满（没有留白）。cover 的判据，也是“用户会不会看到灰条”的判据。
+    /// 是否铺满（没有留白）。fit 下只有比例完全一致才为 true。
     static func fills(_ rendered: CGSize, well: CGSize) -> Bool {
         rendered.width >= well.width - 0.5 && rendered.height >= well.height - 0.5
     }
 
-    /// 竖向溢出的比例（0 = 刚好铺满，0.7 = 裁掉了 70% 的高度）。
-    static func verticalCropRatio(image: CGSize, well: CGSize) -> Double {
+    /// 留白比例（0 = 刚好铺满，0.3 = 有一边空了 30%）。
+    ///
+    /// 这是「图有没有被糟蹋」的可测判据：卡形状贴合内容时它应该接近 0；
+    /// 只有撞到 `cardMinSide` / `cardMaxStretch` 的极端比例才会有明显数值。
+    static func letterboxRatio(image: CGSize, well: CGSize) -> Double {
         let rendered = renderedSize(image: image, well: well)
-        guard rendered.height > 0 else { return 0 }
-        return max(0, 1 - Double(well.height / rendered.height))
+        guard well.width > 0, well.height > 0 else { return 0 }
+        let horizontal = max(0, 1 - Double(rendered.width / well.width))
+        let vertical = max(0, 1 - Double(rendered.height / well.height))
+        return max(horizontal, vertical)
+    }
+
+    /// 把一张图按「厚度固定」规则算出的卡尺寸（与 `EdgePosition.cardSize` 同一算法，
+    /// 抽出来只为让自检能在不建视图的情况下验证它）。
+    static func cardSize(forImage image: CGSize, thickness: CGFloat, isHorizontal: Bool) -> CGSize {
+        guard image.width > 0, image.height > 0, thickness > 0 else {
+            return CGSize(width: thickness, height: thickness)
+        }
+        let ratio = image.width / image.height
+        if isHorizontal {
+            let raw = thickness * ratio
+            let width = min(max(raw, minSide), thickness * maxStretch)
+            return CGSize(width: width.rounded(), height: thickness)
+        } else {
+            let raw = thickness / ratio
+            let floor = max(minSide, thickness * 0.7)
+            let height = min(max(raw, floor), thickness * maxStretch)
+            return CGSize(width: thickness, height: height.rounded())
+        }
     }
 }
 
@@ -102,4 +122,3 @@ enum ImageAspect {
         return ratio
     }
 }
-

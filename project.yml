@@ -37,5 +37,10 @@ targets:
         CFBundleVersion: "1"
         LSApplicationCategoryType: public.app-category.productivity
         LSUIElement: true
+        # 系统级单实例闸门：同一个 .app 被启动第二次时，LaunchServices 直接把
+        # 第二次的启动转给已有实例，不会再开一个新进程。
+        # 注意它只管「同一个 bundle 路径」；不同路径的两份拷贝（比如 build/ 与
+        # .build/）仍能共存，那部分由代码里的 SingleInstanceGuard 兜住。
+        LSMultipleInstancesProhibited: true
         NSPrincipalClass: NSApplication
         NSHumanReadableCopyright: "Copyright © 2026 Samuel Liu"

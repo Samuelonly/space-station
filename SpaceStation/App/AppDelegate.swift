@@ -20,6 +20,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return statusItem
     }()
 
+    func applicationWillFinishLaunching(_ notification: Notification) {
+        // `--instances`：只报告，不接管。开发态用来核对「现在跑的是哪一版」。
+        // 必须放在闸门之前，否则这条命令自己会先把旧实例杀了。
+        if ProcessInfo.processInfo.arguments.contains("--instances") {
+            SingleInstanceGuard.report()
+            exit(0)
+        }
+
+        // **单实例闸门**（§22.13）。放在最早时机：连状态栏图标都还没建，
+        // 一旦要接管，旧图标绝不会留在状态栏里；一旦要让位，也不会闪一下再消失。
+        SingleInstanceGuard.enforce()
+    }
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         // [A-5] 先落“未干净退出”标记：下次启动如果还看到 false，就是异常退出。
         Diagnostics.shared.markLaunched()
@@ -299,5 +312,168 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         button.wantsLayer = true
         button.layer?.cornerRadius = 5
         button.layer?.backgroundColor = NSColor.gray.withAlphaComponent(0.18).cgColor
+    }
+}
+
+// MARK: - 单实例闸门（§22.13）
+
+/// 用户原话（2026-11-18 12:30，写 §22.13 那一条时）：
+///
+/// > 「如果用户更新了，或者是他崩溃了，重启了，可能会有两个同一进程，
+/// >   这个需要判断，按照先后顺序杀死那个之前的进程。
+/// >   就这个本身对于我们在开发阶段的 Feedback 也很重要，然后对于用户也很重要，
+/// >   因为万一他连续双击打开，他可能就卡死了。」
+///
+/// 所以这一道闸门的语义是 **新进程接管、旧进程被杀掉**，不是「新进程退出去」。
+/// 第一版做反了（旧实例留着、新进程 exit），后果正是用户担心的那件事：
+/// 改完编译、启动，看到的还是上一版界面 —— 旧进程没死，新包自己退了。
+/// 更糟的是旧进程一旦卡死（不理事件循环），就永远没人能接管，只能手动 kill。
+///
+/// **开发状态检测**：判定依据不是「谁先启动」这么粗，而是先把每个实例的事实读出来——
+/// 可执行文件路径、构建时间（可执行文件 mtime）、进程启动时间——再决定：
+///
+/// | 情况 | 判定 | 动作 |
+/// |---|---|---|
+/// | 已在跑的包**构建时间更新**（用旧包顺手启动） | 本包是陈旧的 | 本进程退出，激活那个新的 |
+/// | 同一份二进制被重新链接（路径相同，两边 mtime 都变成新构建时间） | 比启动时间 | 本进程接管，杀旧进程 |
+/// | 两份拷贝（`build/` 与 `.build/`），旧的那份 mtime 更早 | 对方陈旧 | 本进程接管，杀旧进程 |
+/// | 旧进程卡死、不理 SIGTERM | 2 秒后仍存活 | SIGKILL 兜底再启动 |
+enum SingleInstanceGuard {
+    /// 一份运行中实例的**可核验事实**。全部来自系统，不做推断。
+    struct Instance: Equatable {
+        let pid: pid_t
+        let path: String
+        /// 可执行文件修改时间 = 构建时间。构建完没动过，改完重编就变。
+        let builtAt: Date?
+        /// 进程启动时间。
+        let launchedAt: Date?
+    }
+
+    enum Verdict: Equatable {
+        /// 杀掉这些旧进程，本进程继续启动。
+        case takeOver(stale: [pid_t])
+        /// 本包比正在跑的更旧，让位给它。
+        case yieldTo(pid: pid_t)
+    }
+
+    /// SIGTERM 之后等多久才动 SIGKILL。2 秒足够正常退出，又不至于让用户盯着空转。
+    static let graceSeconds: TimeInterval = 2.0
+
+    // MARK: 判定（纯函数，可被 L1 自检直接调用）
+
+    static func decide(mine: Instance, others: [Instance]) -> Verdict {
+        let newer = others.filter { isNewer($0, than: mine) }
+        if let target = newer.max(by: { ($0.builtAt ?? .distantPast) < ($1.builtAt ?? .distantPast) }) {
+            return .yieldTo(pid: target.pid)
+        }
+        return .takeOver(stale: others.map(\.pid))
+    }
+
+    /// `a` 是否比 `b` 新。先看构建时间；两边构建时间相同（同一份二进制被重新链接，
+    /// 磁盘上只剩最后一次的 mtime）时退回启动时间。
+    static func isNewer(_ a: Instance, than b: Instance) -> Bool {
+        if let ab = a.builtAt, let bb = b.builtAt, abs(ab.timeIntervalSince(bb)) > 2 {
+            return ab > bb
+        }
+        guard let al = a.launchedAt, let bl = b.launchedAt else { return false }
+        return al > bl
+    }
+
+    // MARK: 执行
+
+    @MainActor
+    static func enforce() {
+        guard let bundleID = Bundle.main.bundleIdentifier, !bundleID.isEmpty else { return }
+        let me = currentInstance()
+        let others = NSRunningApplication
+            .runningApplications(withBundleIdentifier: bundleID)
+            .filter { $0.processIdentifier != me.pid }
+            .map(instance(from:))
+        guard !others.isEmpty else { return }
+
+        switch decide(mine: me, others: others) {
+        case .yieldTo(let pid):
+            // 用旧包启动时不该把新包杀掉 —— 让位，并把新的拉到前面。
+            NSLog("[SingleInstance] 已在运行的 pid %d 比本包更新（本包 %@ 构建于 %@）→ 本进程（pid %d）让位退出",
+                  pid, me.path, stamp(me.builtAt), me.pid)
+            NSRunningApplication(processIdentifier: pid)?.activate(options: [.activateIgnoringOtherApps])
+            exit(0)
+
+        case .takeOver(let stale):
+            for pid in stale {
+                let target = others.first { $0.pid == pid } ?? Instance(pid: pid, path: "?", builtAt: nil, launchedAt: nil)
+                NSLog("[SingleInstance] 接管：旧实例 pid %d 构建于 %@（%@），本包构建于 %@ → 结束旧的",
+                      pid, stamp(target.builtAt), target.path, stamp(me.builtAt))
+                terminate(pid)
+            }
+        }
+    }
+
+    /// 先 SIGTERM，等 `graceSeconds`，还活着就 SIGKILL。
+    /// 卡死的进程不会处理 SIGTERM，这一步不是防御性代码，是必需路径。
+    private static func terminate(_ pid: pid_t) {
+        kill(pid, SIGTERM)
+        let deadline = Date().addingTimeInterval(graceSeconds)
+        while Date() < deadline {
+            if kill(pid, 0) != 0 {          // ESRCH：已经没了
+                NSLog("[SingleInstance] 旧实例 pid %d 已按 SIGTERM 退出", pid)
+                return
+            }
+            usleep(50_000)
+        }
+        kill(pid, SIGKILL)
+        usleep(200_000)
+        NSLog("[SingleInstance] 旧实例 pid %d 对 SIGTERM %.0f 秒无响应（疑似卡死），已 SIGKILL",
+              pid, graceSeconds)
+    }
+
+    // MARK: 事实采集
+
+    static func currentInstance() -> Instance {
+        // 本进程的 `launchDate` 在 `willFinishLaunching` 阶段还查不到（返回 nil），
+        // 直接用当下时间：我们就是这一秒起来的。
+        instance(pid: ProcessInfo.processInfo.processIdentifier,
+                 path: Bundle.main.executableURL?.path ?? "",
+                 launchedAt: Date())
+    }
+
+    static func instance(from app: NSRunningApplication) -> Instance {
+        instance(pid: app.processIdentifier,
+                 path: app.executableURL?.path ?? "",
+                 launchedAt: app.launchDate)
+    }
+
+    static func instance(pid: pid_t, path: String, launchedAt: Date? = nil) -> Instance {
+        Instance(
+            pid: pid,
+            path: path,
+            builtAt: path.isEmpty ? nil : buildDate(of: path),
+            launchedAt: launchedAt ?? NSRunningApplication(processIdentifier: pid)?.launchDate
+        )
+    }
+
+    private static func buildDate(of path: String) -> Date? {
+        (try? FileManager.default.attributesOfItem(atPath: path))?[.modificationDate] as? Date
+    }
+
+    private static func stamp(_ date: Date?) -> String {
+        guard let date else { return "未知" }
+        let f = DateFormatter()
+        f.dateFormat = "HH:mm:ss"
+        return f.string(from: date)
+    }
+
+    /// `--instances`：把「现在到底跑着几个、分别是谁、多旧」直接打出来。
+    /// 开发态最难查的不是崩溃，是「我以为在跑新版，其实跑着旧版」。
+    @MainActor
+    static func report() {
+        guard let bundleID = Bundle.main.bundleIdentifier else { return }
+        let all = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID)
+            .map(instance(from:))
+        print("[Instances] 同 bundleID 共 \(all.count) 个进程")
+        for item in all.sorted(by: { ($0.launchedAt ?? .distantPast) < ($1.launchedAt ?? .distantPast) }) {
+            let mine = item.pid == ProcessInfo.processInfo.processIdentifier ? " ←本进程" : ""
+            print("  pid \(item.pid)  构建 \(stamp(item.builtAt))  启动 \(stamp(item.launchedAt))  \(item.path)\(mine)")
+        }
     }
 }

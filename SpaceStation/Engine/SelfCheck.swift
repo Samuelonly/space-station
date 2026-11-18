@@ -176,40 +176,53 @@ enum SelfCheck {
             "\(Int(left.width))×\(Int(left.height))"
         ))
 
-        // **图片卡尺寸跟随图片比例**（DockDoor 的核心做法），clamp 在 2:3 ~ 3:2。
-        // 这条取代了“固定形状 + cover 硬裁”，后者会把手机截图裁成局部特写。
+        // **图片卡：厚度固定，另一维跟着内容比例走；只有撞闸门才收。**
+        // 这条取代了“clamp 比例 + cover 硬裁”，后者会把手机截图裁成局部特写。
         let phoneCard = EdgePosition.top.cardSize(imageAspect: 9.0 / 19.5)
         let wideShot = EdgePosition.top.cardSize(imageAspect: 16.0 / 10.0)
+        let thinStrip = EdgePosition.top.cardSize(imageAspect: 680.0 / 2000.0)
         let phoneCardSide = EdgePosition.left.cardSize(imageAspect: 9.0 / 19.5)
+
+        // 核心判据：**常见比例一个点都不裁**。卡形状就是内容形状，fit 天然贴合。
+        // 只要这条成立，“局部特写”就不可能再出现——不是靠参数，是靠顺序。
+        let commonAspects: [(String, CGSize)] = [
+            ("1:1", CGSize(width: 1000, height: 1000)),
+            ("3:4", CGSize(width: 900, height: 1200)),
+            ("4:3", CGSize(width: 1600, height: 1200)),
+            ("9:19.5", CGSize(width: 900, height: 1950)),
+        ]
+        let worstGutter = commonAspects.map { _, px -> Double in
+            let card = EdgePosition.top.cardSize(imageAspect: px.width / px.height)
+            return ContentWellFill.letterboxRatio(image: px, well: card)
+        }.max() ?? 0
         items.append(check(
-            "图片卡·手机竖图(9:19.5)按比例伸缩且不窄于 2:3",
-            phoneCard.width < phoneCard.height
-                && abs(phoneCard.width / phoneCard.height - ContentWellFill.minAspect) < 0.02,
-            "\(Int(phoneCard.width))×\(Int(phoneCard.height))"
+            "图片卡·常见比例零留白（卡跟着内容变形，不裁也不留缝）",
+            worstGutter <= 0.02,
+            String(format: "最坏留白 %.1f%%", worstGutter * 100)
+        ))
+
+        items.append(check(
+            "图片卡·厚度恒定（横排锁高 120，不论图多宽多窄）",
+            abs(phoneCard.height - 120) < 0.01 && abs(wideShot.height - 120) < 0.01
+                && abs(thinStrip.height - 120) < 0.01,
+            "9:19.5 → \(Int(phoneCard.width))×120 ｜ 16:10 → \(Int(wideShot.width))×120"
         ))
         items.append(check(
-            "图片卡·宽截图(16:10)不宽于 3:2",
-            wideShot.width > wideShot.height
-                && abs(wideShot.width / wideShot.height - ContentWellFill.maxAspect) < 0.02,
-            "\(Int(wideShot.width))×\(Int(wideShot.height))"
+            "图片卡·极端比例撞最小边 52 而不是被压成缝",
+            thinStrip.width >= StationMetrics.cardMinSide - 0.01
+                && thinStrip.width < phoneCard.width,
+            "680×2000 → \(Int(thinStrip.width))×120"
         ))
-        // 纵向也锁高度：90 高不动，宽度按比例 —— 一列才装得下 5 张。
         items.append(check(
-            "图片卡·纵向同样锁高 90（一列装得下 5 张）",
-            abs(phoneCardSide.height - 90) < 0.01
-                && phoneCardSide.width < phoneCardSide.height,
+            "图片卡·宽卡撞上限不超过 1.5 倍厚度",
+            wideShot.width <= 120 * StationMetrics.cardMaxStretch + 0.01,
+            "\(Int(wideShot.width)) ≤ \(Int(120 * StationMetrics.cardMaxStretch))"
+        ))
+        // 纵向：宽度锁 120（瓶颈是高度），高度跟着比例走。
+        items.append(check(
+            "图片卡·纵向锁宽 120（一列装得下 5 张）",
+            abs(phoneCardSide.width - 120) < 0.01,
             "\(Int(phoneCardSide.width))×\(Int(phoneCardSide.height))"
-        ))
-        // 裁切率上限：clamp 之后最坏情况是 1 − 2/3 ≈ 0.334，超过就是“局部特写”回来了。
-        let worstCrop = ContentWellFill.verticalCropRatio(
-            image: CGSize(width: 9, height: 19.5),
-            well: phoneCard
-        )
-        items.append(check(
-            "图片卡·最坏裁切率 ≤ 1/3（不再出现局部特写）",
-            worstCrop <= ContentWellFill.maxCropRatio + 0.02,
-            String(format: "%.0f%% / 上限 %.0f%%",
-                   worstCrop * 100, ContentWellFill.maxCropRatio * 100)
         ))
 
         // **一屏 5 张**是产品硬指标，不是形容词。
@@ -226,38 +239,29 @@ enum SelfCheck {
             ))
         }
 
-        // 内容井**一律 cover**（Instagram / 微博逻辑）：不管图多窄多宽，
-        // 渲染尺寸两个方向都必须不小于井 = 井里没有留白。
-        let well = CGSize(width: 140, height: 150)
-        let phone = ContentWellFill.renderedSize(image: CGSize(width: 900, height: 1950), well: well)
+        // 填充方式：**fit**。前提是卡形状已经贴合内容（上面的零留白断言保证了这点）。
+        // 谁把它改回 cover，等于把“先定死形状再塞图”的老路重走一遍，这条当场变红。
         items.append(check(
-            "内容井·手机竖图(9:19.5)也铺满",
-            ContentWellFill.fills(phone, well: well),
-            "\(Int(phone.width))×\(Int(phone.height)) ← 900×1950"
-        ))
-        let mac = ContentWellFill.renderedSize(image: CGSize(width: 1600, height: 1000), well: well)
-        items.append(check(
-            "内容井·Mac 截图(16:10)也铺满",
-            ContentWellFill.fills(mac, well: well),
-            "\(Int(mac.width))×\(Int(mac.height)) ← 1600×1000"
-        ))
-        let wide = ContentWellFill.renderedSize(image: CGSize(width: 3000, height: 1000), well: well)
-        items.append(check(
-            "内容井·超宽图(3:1)也铺满",
-            ContentWellFill.fills(wide, well: well),
-            "\(Int(wide.width))×\(Int(wide.height)) ← 3000×1000"
-        ))
-        items.append(check(
-            "内容井·填充方式固定 cover（禁止回退 fit）",
-            ContentWellFill.contentMode == .fill,
+            "内容井·填充方式固定 fit（卡已贴合，禁止回退 cover）",
+            ContentWellFill.contentMode == .fit,
             "\(ContentWellFill.contentMode)"
         ))
-        // cover 之后还有取景锚点：竖图在横井里必须保住顶部，否则只剩中间一块空白。
         items.append(check(
-            "内容井·裁切锚点在顶部",
-            ContentWellFill.alignment == .top,
+            "内容井·锚点居中（撞闸门时两侧留白对称）",
+            ContentWellFill.alignment == .center,
             "\(ContentWellFill.alignment)"
         ))
+        // 撞闸门的极端图，留白必须有上限，否则“一条缝”会从后门回来。
+        let extremeGutter = ContentWellFill.letterboxRatio(
+            image: CGSize(width: 680, height: 2000),
+            well: thinStrip
+        )
+        items.append(check(
+            "内容井·极端比例留白 ≤ 35%（细长图不变成一根针）",
+            extremeGutter <= 0.35,
+            String(format: "%.0f%%", extremeGutter * 100)
+        ))
+
 
         // 图标标尺：源 App 16、动作图标 14（外框 16，差 2 是给描边留的视觉补偿）。
         items.append(check(
@@ -265,6 +269,54 @@ enum SelfCheck {
             StationMetrics.glyphSize == 16 && StationMetrics.actionGlyphSize == 14
                 && StationMetrics.actionChipSize == 16,
             "\(Int(StationMetrics.glyphSize)) / \(Int(StationMetrics.actionGlyphSize))"
+        ))
+
+        // **单实例闸门**。2026-11-18 实测事故：任务栏真出现了两个图标，
+        // 两个实例同时监听 NSPasteboard，历史会重复写入。
+        // 当时只有一条「进程唯一性」的**检查**，没有任何**阻止**。
+        // 现在两道闸门，这条断言钉住第一道（Info.plist），
+        // 第二道（SingleInstanceGuard）由启动路径保证，改坏了会立刻暴露成两个图标。
+        let singleInstanceFlag = Bundle.main.object(forInfoDictionaryKey: "LSMultipleInstancesProhibited")
+        items.append(check(
+            "单实例·Info.plist 带 LSMultipleInstancesProhibited",
+            (singleInstanceFlag as? Bool) == true,
+            "\(singleInstanceFlag ?? "缺失")"
+        ))
+
+        // **接管的判定规则**（`SingleInstanceGuard.decide`，纯函数）。
+        // 用户原话：「按照先后顺序杀死那个之前的进程……万一他连续双击打开，他可能就卡死了。」
+        // 第一版做反了：旧实例留着、新进程退出 —— 结果改完编译启动，看到的还是上一版。
+        let t0 = Date(timeIntervalSince1970: 1_000)
+        let t1 = Date(timeIntervalSince1970: 2_000)
+        let mine = SingleInstanceGuard.Instance(pid: 100, path: "/A/SpaceStation", builtAt: t1, launchedAt: t1)
+        let sameBuildOlderLaunch = SingleInstanceGuard.Instance(
+            pid: 90, path: "/A/SpaceStation", builtAt: t1, launchedAt: t0
+        )
+        items.append(check(
+            "单实例·同一份二进制，杀旧进程由新进程接管",
+            SingleInstanceGuard.decide(mine: mine, others: [sameBuildOlderLaunch]) == .takeOver(stale: [90]),
+            "旧 pid 90 → 除")
+        )
+        let staleBuild = SingleInstanceGuard.Instance(
+            pid: 80, path: "/old/SpaceStation", builtAt: t0, launchedAt: t0
+        )
+        items.append(check(
+            "单实例·旧构建的拷贝（不同路径）也被接管",
+            SingleInstanceGuard.decide(mine: mine, others: [staleBuild]) == .takeOver(stale: [80]),
+            "旧构建 \(staleBuild.path) → 除")
+        )
+        let newerBuild = SingleInstanceGuard.Instance(
+            pid: 110, path: "/new/SpaceStation", builtAt: t1.addingTimeInterval(600), launchedAt: t0
+        )
+        items.append(check(
+            "单实例·已在跑的包更新时，本包让位（不用旧包杀新包）",
+            SingleInstanceGuard.decide(mine: mine, others: [newerBuild]) == .yieldTo(pid: 110),
+            "对方更新 → 本进程退出")
+        )
+        items.append(check(
+            "单实例·SIGTERM 宽限 2 秒后才 SIGKILL（卡死兜底）",
+            SingleInstanceGuard.graceSeconds == 2.0,
+            String(format: "%.1fs", SingleInstanceGuard.graceSeconds)
         ))
 
         return items
