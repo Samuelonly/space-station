@@ -21,6 +21,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // [A-5] 先落“未干净退出”标记：下次启动如果还看到 false，就是异常退出。
+        Diagnostics.shared.markLaunched()
         _ = statusItem
 
         panel = FloatingPanel(
@@ -43,6 +45,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             try? Storage.shared.removeUnpersistableContents()
             try? Storage.shared.sanitizeTitles()
             try? await History.shared.load()
+            Diagnostics.shared.setHistoryCount(History.shared.items.count)
+            // [A-4] 启动先扫一次磁盘，让诊断面板有真实数值。
+            _ = ThumbnailCache.shared.enforceDiskLimit()
             History.shared.cleanupExpired() // §17.10 retention (pin-exempt, 0=never)
 
             // HTML §21.4 pin #1 (capture port). M3: prediction metadata.
@@ -55,6 +60,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     item.predictionReason = prediction.reason
                 }
                 History.shared.add(item)
+                Diagnostics.shared.setHistoryCount(History.shared.items.count)
                 ClipboardUndo.shared.record(item)
             }
             Clipboard.shared.start()
@@ -64,6 +70,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
         togglePanel()
         return true
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        // [A-5] 正常退出才置 true；下次启动读它区分“异常退出”。
+        Diagnostics.shared.markCleanExit()
     }
 
     // MARK: - Status item gestures (modifier logic per §21.10;
@@ -84,6 +95,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let settings = NSMenuItem(title: "设置…", action: #selector(openSettings), keyEquivalent: "")
             settings.target = self
             menu.addItem(settings)
+            #if DEBUG
+            menu.addItem(NSMenuItem.separator())
+            let diagnostics = NSMenuItem(title: "诊断面板…", action: #selector(openDiagnostics), keyEquivalent: "")
+            diagnostics.target = self
+            menu.addItem(diagnostics)
+            #endif
             // 直接弹出，避免给 button 挂 menu 后 performClick 再次触发本方法（递归）。
             if let button = statusItem.button {
                 menu.popUp(positioning: nil, at: NSPoint(x: 0, y: button.bounds.height + 4), in: button)
@@ -110,6 +127,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func openSettings() {
         SettingsWindowController.shared.show(state: stationState)
     }
+
+    #if DEBUG
+    /// [A-5] 仅 DEV：打开诊断面板（发布包里这个方法根本不存在）。
+    @objc private func openDiagnostics() {
+        DiagnosticsWindowController.shared.show()
+    }
+    #endif
 
     /// 阶段三：全屏框选 → 标注 → 入库。截图结果作为图片卡插入 History。
     @objc private func startCapture() {

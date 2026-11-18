@@ -64,7 +64,9 @@ enum QuickLookResolver {
             return .systemFile(first)
         }
         // 剪贴板内嵌位图（无 fileURL）→ 系统解码的 NSImage。
-        if let image = item.image {
+        // [A-1] 预览走缩略图管线的 preview 尺寸（长边 2560），不再展开 8K 原图。
+        if let data = item.imageData,
+           let image = ThumbnailCache.shared.previewImage(forData: data) {
             return .image(image)
         }
 
