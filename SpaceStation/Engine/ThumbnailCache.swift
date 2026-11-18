@@ -146,6 +146,44 @@ final class ThumbnailCache: @unchecked Sendable {
         return memory[key]?.image
     }
 
+    // MARK: - [A-1] 平均色（图片井的底色，避免留白处出现灰条）
+
+    private var tints: [String: NSColor] = [:]
+
+    /// 取该图的主色（1×1 降采样求平均）。缓存按 base key，同一张图只算一次。
+    func tint(forData data: Data, image: NSImage) -> NSColor {
+        let baseKey = Self.key(forData: data)
+        lock.lock()
+        if let hit = tints[baseKey] { lock.unlock(); return hit }
+        lock.unlock()
+
+        let color = Self.averageColor(of: image) ?? .separatorColor
+        lock.lock()
+        if tints.count > 400 { tints.removeAll(keepingCapacity: true) }
+        tints[baseKey] = color
+        lock.unlock()
+        return color
+    }
+
+    /// 1×1 上下文重绘 = 平均色。比逐像素遍历快得多，且对任何色域都成立。
+    static func averageColor(of image: NSImage) -> NSColor? {
+        guard let cg = image.cgImage(forProposedRect: nil, context: nil, hints: nil),
+              let ctx = CGContext(
+                  data: nil, width: 1, height: 1, bitsPerComponent: 8, bytesPerRow: 4,
+                  space: CGColorSpaceCreateDeviceRGB(),
+                  bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+              ) else { return nil }
+        ctx.interpolationQuality = .medium
+        ctx.draw(cg, in: CGRect(x: 0, y: 0, width: 1, height: 1))
+        guard let raw = ctx.data?.bindMemory(to: UInt8.self, capacity: 4) else { return nil }
+        return NSColor(
+            srgbRed: CGFloat(raw[0]) / 255,
+            green: CGFloat(raw[1]) / 255,
+            blue: CGFloat(raw[2]) / 255,
+            alpha: 1
+        )
+    }
+
     // MARK: - 降采样（唯一解码点，⑥ 图像管线）
 
     /// 只分配目标尺寸的位图；不解全图，也不放大。

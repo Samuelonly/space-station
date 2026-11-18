@@ -3,11 +3,13 @@ import SwiftUI
 
 /// 卡片壳 + 内容层（四边共用，HTML §21.7.4）。
 ///
-/// 0.5.0 / A 组的三处改动都落在这一个文件：
-///  - [A-1] 图片卡真的画图：走 ThumbnailCache 的卡片级降采样，后台生成，不阻塞首帧。
+/// 0.5.0 / A 组的四处改动都落在这一个文件：
+///  - [A-1] 图片卡真的画图：走 ThumbnailCache 的卡片级降采样；**井比 4:5**，
+///          比例接近就填满、差太多就完整放下（Mac 截图不许被裁掉两侧），留白处用主色铺底。
 ///  - [A-2] 来源 App 显示真图标 + 真名字（SourceAppResolver），不再是 `com.apple.Safari`。
 ///  - [A-3] 布局归位：右上角动作组件（hover 淡入）、左下 Info（相对时间 · 可选信息 · ×N）、
-///          右下留空；卡内不放常驻垃圾桶。
+///          右下留空；悬停带 **120ms 停留延迟 + 柔光**，鼠标快速划过不抖动。
+///  - [A-3] 头部只留**一级名字**（App 名 / 网址只留主机名），并给右上组件让位。
 struct StationCard: View {
     let item: HistoryItem
     let size: CGSize
@@ -17,9 +19,15 @@ struct StationCard: View {
     let onAction: (String) -> Void
     let onFlavor: () -> Void
 
+    /// hover 真值（带停留延迟，用于高亮 + 按钮显形 + 光效）
     @State private var isHovering = false
+    /// 延迟计时进行中（防止鼠标微动反复重启计时，导致永远不触发）
+    @State private var hoverPending = false
+    @State private var hoverTask: Task<Void, Never>?
+
     @State private var showPrediction = false
     @State private var thumbnail: NSImage?
+    @State private var thumbnailTint: NSColor?
     @State private var appInfo: SourceAppResolver.Info?
 
     private var effectiveSelected: Bool { isSelected || isHovering }
@@ -52,7 +60,7 @@ struct StationCard: View {
             .padding(8)
             .frame(width: size.width, height: size.height, alignment: .topLeading)
             .clipShape(RoundedRectangle(cornerRadius: StationMetrics.imageRadius, style: .continuous))
-            .opacity(effectiveSelected ? 1 : 0.75)
+            .opacity(effectiveSelected ? 1 : 0.78)
             .animation(.easeInOut(duration: 0.15), value: effectiveSelected)
 
             // [A-3] 动作组件：右上角、hover 才显形（§17.4），不再占底部一行。
@@ -60,6 +68,7 @@ struct StationCard: View {
                 .padding(6)
                 .frame(width: size.width, height: size.height, alignment: .topTrailing)
                 .opacity(isHovering ? 1 : 0)
+                .allowsHitTesting(isHovering)
                 .animation(StationMetrics.hoverAnimation, value: isHovering)
 
             if effectiveSelected { selectionBorder }
@@ -75,14 +84,13 @@ struct StationCard: View {
                height: size.height + StationMetrics.innerPadding * 2)
         .contentShape(Rectangle())
         .onContinuousHover { phase in
-            let hovering: Bool
             switch phase {
-            case .active: hovering = true
-            case .ended: hovering = false
-            @unknown default: hovering = false
+            case .active: beginHoverDwell()
+            case .ended: endHover()
+            @unknown default: endHover()
             }
-            withAnimation(StationMetrics.hoverAnimation) { isHovering = hovering }
         }
+        .onDisappear { hoverTask?.cancel() }
         .onTapGesture { onSelect(); onPaste() }
         .animation(StationMetrics.hoverAnimation, value: effectiveSelected)
         .task(id: item.persistentModelID) { await loadSurfaces() }
@@ -92,7 +100,32 @@ struct StationCard: View {
         }
     }
 
-    // MARK: - 背景 / 选中（§21.6 玻璃 + 描边，不做几何缩放）
+    // MARK: - 悬停：停留才高亮（快速划过不触发）
+
+    private func beginHoverDwell() {
+        guard !isHovering, !hoverPending else { return }
+        hoverPending = true
+        hoverTask?.cancel()
+        hoverTask = Task { @MainActor in
+            try? await Task.sleep(for: StationMetrics.hoverDwell)
+            guard !Task.isCancelled else { return }
+            hoverPending = false
+            withAnimation(StationMetrics.hoverAnimation) { isHovering = true }
+        }
+    }
+
+    private func endHover() {
+        hoverTask?.cancel()
+        hoverTask = nil
+        hoverPending = false
+        guard isHovering else { return }
+        withAnimation(StationMetrics.hoverAnimation) {
+            isHovering = false
+            showPrediction = false
+        }
+    }
+
+    // MARK: - 背景 / 选中 / 光效（§21.6 玻璃 + 描边，不做几何缩放）
 
     private var background: some View {
         RoundedRectangle(cornerRadius: StationMetrics.cardRadius, style: .continuous)
@@ -104,6 +137,26 @@ struct StationCard: View {
                 shape: RoundedRectangle(cornerRadius: StationMetrics.cardRadius, style: .continuous)
             )
             .padding(-StationMetrics.innerPadding)
+            // [A-3] DockDoor 式观感：贴外柔光 + 顶部受光边，只改光不改几何。
+            .shadow(
+                color: .black.opacity(isHovering ? StationMetrics.hoverGlowOpacity : 0),
+                radius: isHovering ? StationMetrics.hoverGlowRadius : 0,
+                y: isHovering ? 3 : 0
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: StationMetrics.cardRadius, style: .continuous)
+                    .strokeBorder(
+                        LinearGradient(
+                            colors: [.white.opacity(isHovering ? StationMetrics.hoverRimOpacity : 0),
+                                     .white.opacity(0)],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        ),
+                        lineWidth: 1
+                    )
+                    .padding(-StationMetrics.innerPadding)
+                    .allowsHitTesting(false)
+            }
     }
 
     private var selectionFill: some View {
@@ -119,7 +172,7 @@ struct StationCard: View {
             .allowsHitTesting(false)
     }
 
-    // MARK: - [A-2] 头部：真图标 + 真名字
+    // MARK: - [A-2] 头部：真图标 + 一级名字
 
     private var header: some View {
         HStack(spacing: 4) {
@@ -131,7 +184,10 @@ struct StationCard: View {
                 .foregroundStyle(.secondary)
             Spacer(minLength: 0)
         }
-        .frame(height: 18)
+        .frame(height: StationMetrics.headerHeight)
+        // hover 时给右上动作组件让位，文字尾部截断，绝不把按钮挤到卡外。
+        .padding(.trailing, isHovering ? StationMetrics.actionClusterReserve : 0)
+        .animation(StationMetrics.hoverAnimation, value: isHovering)
     }
 
     @ViewBuilder
@@ -140,23 +196,23 @@ struct StationCard: View {
             Image(nsImage: icon)
                 .resizable()
                 .interpolation(.high)
-                .frame(width: 14, height: 14)
+                .frame(width: StationMetrics.glyphSize, height: StationMetrics.glyphSize)
         } else {
             Image(systemName: kindSymbol(kind))
-                .font(.system(size: 10))
+                .font(.system(size: 12))
                 .foregroundStyle(.secondary)
-                .frame(width: 14, height: 14)
+                .frame(width: StationMetrics.glyphSize, height: StationMetrics.glyphSize)
         }
     }
 
+    /// 只显示一级：解析到的 App 名；未解析完成时退到 bundle id 的最后一段（`Safari` 而不是 `com.apple.Safari`）。
     private var displayName: String {
         if let name = appInfo?.name { return name }
         guard let bundleID = item.application, !bundleID.isEmpty else { return "未知 App" }
-        // 解析完成前的瞬时回落：com.apple.Safari → Safari（好过一个裸 bundle id）
         return bundleID.split(separator: ".").last.map(String.init) ?? bundleID
     }
 
-    // MARK: - [A-1] 内容层：图片卡真的画图
+    // MARK: - [A-1] 内容层
 
     @ViewBuilder
     private var content: some View {
@@ -168,34 +224,63 @@ struct StationCard: View {
     }
 
     private var imageContent: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(.primary.opacity(0.06))
+        GeometryReader { geo in
+            let well = geo.size
+            ZStack {
+                // 主色铺底：比例不匹配时留白处也是“画面的一部分”，不是灰条。
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(tintColor.opacity(0.55))
 
-            if let thumbnail {
-                Image(nsImage: thumbnail)
-                    .resizable()
-                    .interpolation(.high)
-                    .scaledToFill()
-            } else {
-                Image(systemName: "photo")
-                    .font(.system(size: 18))
-                    .foregroundStyle(.tertiary)
+                if let thumbnail {
+                    Image(nsImage: thumbnail)
+                        .resizable()
+                        .interpolation(.high)
+                        .aspectRatio(contentMode: fillMode(well: well))
+                        .frame(width: well.width, height: well.height)
+                        .clipped()
+                } else {
+                    Image(systemName: "photo")
+                        .font(.system(size: 18))
+                        .foregroundStyle(.tertiary)
+                }
+            }
+            .frame(width: well.width, height: well.height)
+            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .strokeBorder(.primary.opacity(0.08), lineWidth: 1)
             }
         }
-        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var tintColor: Color {
+        if let thumbnailTint { return Color(nsColor: thumbnailTint) }
+        return Color.primary.opacity(0.06)
+    }
+
+    /// 图与井比例接近 → 填满（裁一点点，视觉更满）；差太多 → 完整放下（截图两侧不许被裁）。
+    private func fillMode(well: CGSize) -> ContentMode {
+        guard let thumbnail, thumbnail.size.height > 0, well.height > 0 else { return .fill }
+        let imageAspect = thumbnail.size.width / thumbnail.size.height
+        let wellAspect = well.width / well.height
+        let delta = abs(imageAspect - wellAspect) / wellAspect
+        return delta <= StationMetrics.imageFillTolerance ? .fill : .fit
     }
 
     private var textContent: some View {
         Text(bodyText)
             .font(.system(size: 12, weight: .medium))
             .lineLimit(isLandscape ? 3 : 5)
+            .truncationMode(.tail)
             .frame(maxWidth: .infinity, alignment: .topLeading)
     }
 
     private var bodyText: String {
-        item.title.isEmpty ? "（\(kind.cnLabel)）" : item.title
+        if kind == .url, let url = ClipKind.firstURL(in: item.text ?? "") {
+            // [A-3] 网址只留一级（主机名）。完整 URL 走 QuickLook / 复制，不在卡上铺三行。
+            if let host = url.host, !host.isEmpty { return host }
+        }
+        return item.title.isEmpty ? "（\(kind.cnLabel)）" : item.title
     }
 
     // MARK: - [A-3] 左下 Info
@@ -225,9 +310,8 @@ struct StationCard: View {
         case .file:
             let count = item.fileURLs.count
             return count > 1 ? "\(count) 项" : nil
-        case .url:
-            return ClipKind.firstURL(in: item.text ?? "")?.host
-        case .video, .text, .code, .note:
+        case .url, .video, .text, .code, .note:
+            // 网址的主机名已经是一级标题，这里不再重复。
             return nil
         }
     }
@@ -262,7 +346,7 @@ struct StationCard: View {
         HStack(spacing: 4) {
             ForEach(headActions) { action in
                 Button { onAction(action.id) } label: {
-                    Text(displayIcon(for: action)).font(.system(size: 11))
+                    Text(displayIcon(for: action)).font(.system(size: StationMetrics.glyphSize))
                 }
                 .buttonStyle(.plain)
                 .help(displayHelp(for: action))
@@ -270,7 +354,7 @@ struct StationCard: View {
 
             if item.contents.count > 1 {
                 Button { onFlavor() } label: {
-                    Image(systemName: "square.on.square").font(.system(size: 10))
+                    Image(systemName: "square.on.square").font(.system(size: 12))
                 }
                 .buttonStyle(.plain)
                 .help("切换另一种表示")
@@ -280,14 +364,14 @@ struct StationCard: View {
                 Button {
                     withAnimation(StationMetrics.hoverAnimation) { showPrediction.toggle() }
                 } label: {
-                    Image(systemName: "arrow.up.forward.app").font(.system(size: 11))
+                    Image(systemName: "arrow.up.forward.app").font(.system(size: 12))
                 }
                 .buttonStyle(.plain)
                 .help("预测：\(predictedAction.label)")
             }
         }
         .padding(.horizontal, 6)
-        .padding(.vertical, 4)
+        .padding(.vertical, 3)
         .background(.regularMaterial, in: Capsule())
         .overlay(Capsule().strokeBorder(.primary.opacity(0.08), lineWidth: 1))
     }
@@ -310,19 +394,24 @@ struct StationCard: View {
 
     // MARK: - 加载（后台，不阻塞首帧）
 
-    private struct BoxedImage: @unchecked Sendable {
+    private struct BoxedThumb: @unchecked Sendable {
         let image: NSImage
+        let tint: NSColor
     }
 
     private func loadSurfaces() async {
         appInfo = SourceAppResolver.shared.info(for: item.application)
 
         guard kind == .image, thumbnail == nil, let data = item.imageData else { return }
-        let boxed = await Task.detached(priority: .userInitiated) { () -> BoxedImage? in
+        let boxed = await Task.detached(priority: .userInitiated) { () -> BoxedThumb? in
             guard let image = ThumbnailCache.shared.image(forData: data) else { return nil }
-            return BoxedImage(image: image)
+            let tint = ThumbnailCache.shared.tint(forData: data, image: image)
+            return BoxedThumb(image: image, tint: tint)
         }.value
-        if let image = boxed?.image { thumbnail = image }
+        if let boxed {
+            thumbnail = boxed.image
+            thumbnailTint = boxed.tint
+        }
     }
 
     // MARK: - 图标 / 文案
