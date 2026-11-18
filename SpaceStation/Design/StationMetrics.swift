@@ -29,8 +29,10 @@ enum StationMetrics {
     }
 
     // MARK: - Spacing
-    /// 间距从 16 收到 12：卡变小了（首屏要塞 5 张），16 的缝在 120 高的卡上会显得“散架”。
-    static let itemSpacing: CGFloat = 12
+    /// 间距回到 **16**（HTML `--rail-gap:16px`）。
+    /// 12 是我之前为了"塞下 5 张"硬压的；其实卡变小之后 16 更对——
+    /// 卡片之间要能看见桌面，卡才不会糊成一条。
+    static let itemSpacing: CGFloat = 16
     static let inset: CGFloat = 12
     static let dockStyleOuter: CGFloat = 2
     /// 纵向轨道左侧的纯图标栏宽（不再放文字，见 NavBar）。
@@ -73,6 +75,64 @@ enum StationMetrics {
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )
+    }
+
+    // MARK: - HTML 原型的视觉语言（2026-11-18 对齐）
+    //
+    /// **这一组数是 `space-station.html` 的 `:root` / `.station` / `.group` / `.viewport`
+    /// 直接搬过来的，不是重新调的。**
+    ///
+    /// 用户评语：「别说和 DockDoor 不一样了，它甚至还不如 HTML 呢。」
+    /// 查下来不是参数问题，是**整套语言没实现**：HTML 是深色玻璃站 + 深色玻璃卡 +
+    /// 暗底 viewport + 内层纸 sheet；我做的是系统浅色 + 白卡 + 单层。捡了数字，丢了体系。
+    ///
+    /// HTML 里同一件事有两层玻璃：
+    ///   站体 `.station` = 白 0.115→0.042 + blur 32 + saturate 165% + 边 0.175 + 影 0 26 72
+    ///   卡片 `.group`   = 白 0.125→0.045 + blur 14 + saturate 150% + 边 0.18 + 影 0 9 24
+    /// 卡片比站体**更亮一点**（0.125 vs 0.115），所以卡是浮在站体上的，不是贴在墙上。
+    enum Glass {
+        /// 站体玻璃渐变上端 / 下端（HTML `.station`）。
+        static let shellTop: CGFloat = 0.115
+        static let shellBottom: CGFloat = 0.042
+        /// 卡片玻璃渐变上端 / 下端（HTML `.group`）。比站体略亮 → 卡浮起来。
+        static let cardTop: CGFloat = 0.125
+        static let cardBottom: CGFloat = 0.045
+        /// 卡片描边（HTML `.group` border）。这一条是“卡有形”的主要来源。
+        static let cardBorder: CGFloat = 0.18
+        /// 卡片顶部 1px 受光（HTML `inset 0 1px 0 rgba(255,255,255,.25)`）。
+        static let cardTopHighlight: CGFloat = 0.25
+
+        /// 内容井（HTML `.viewport`）：**暗底**，让缩略图/文字从暗处浮出来。
+        static let viewportFill: CGFloat = 0.16     // rgba(0,0,0,.16)
+        static let viewportBorder: CGFloat = 0.075
+        /// 内层纸（HTML `.sheet`）：viewport 里再嵌一张更亮的薄纸。
+        static let sheetFill: CGFloat = 0.045
+        /// viewport 底部压暗的渐变高度（HTML `.viewport::after` height:30px）。
+        static let viewportFadeHeight: CGFloat = 30
+
+        /// 站体投影（HTML `0 26px 72px rgba(0,0,0,.46)`）。
+        static let shellShadowRadius: CGFloat = 26
+        static let shellShadowOpacity: CGFloat = 0.46
+        static let shellShadowY: CGFloat = 14
+        /// 卡片投影（HTML `0 9px 24px rgba(0,0,0,.30)`）。
+        static let cardShadowRadius: CGFloat = 12
+        static let cardShadowOpacity: CGFloat = 0.30
+        static let cardShadowY: CGFloat = 5
+        /// hover 时卡片投影加深（HTML `0 14px 30px rgba(0,0,0,.4)`）。
+        static let cardShadowHoverRadius: CGFloat = 16
+        static let cardShadowHoverOpacity: CGFloat = 0.40
+        static let cardShadowHoverY: CGFloat = 7
+
+        /// 选中/hover 的蓝（HTML `--blue:#0A84FF`）。
+        static let accent = Color(red: 10 / 255, green: 132 / 255, blue: 255 / 255)
+        /// 蓝边宽度（HTML `border: 1.5px solid var(--blue)`）。
+        static let accentBorderWidth: CGFloat = 1.5
+        /// 外圈光晕（HTML `0 0 0 3px rgba(10,132,255,.13)`）。
+        static let accentHaloWidth: CGFloat = 3
+        static let accentHaloOpacity: CGFloat = 0.22
+        /// hover 抬起（HTML `transform: scale(1.012)` + 卡上移 2px）。
+        static let hoverScale: CGFloat = 1.012
+        static let hoverLift: CGFloat = 2
     }
 
     // MARK: - Rim-light stroke (dockStyle.swift:112-125)
@@ -145,19 +205,24 @@ enum StationMetrics {
     static let scrollDeltaMultiplier: CGFloat = 10
 
     // MARK: - Card body size per dock edge (HTML §18.5 / §9)
-    /// **比例随边反转 + 统一卡高 120**（2026-11-18 用户口径）。
+    /// **卡的比例由「排列方向」决定**（2026-11-18 用户第二次校准，这次是最终口径）。
     ///
-    /// 用户原话：3:4 这个比例可以变尺寸，“50 不好算、80 也不好算，那就 40，按 40 来算”。
-    /// 于是取 **120 = 40×3** 作为唯一的卡高，两个方向只是转置：
-    /// - 顶/底（横排）→ **4:3 = 160×120**
-    /// - 左/右（纵排）→ **3:4 = 90×120**
+    /// 逻辑只有一句：**哪边是瓶颈，就把哪边压小。**
+    /// - 顶/底 = 横向排一列 → **宽度**是瓶颈 → 卡压窄 → **3:4 竖版 90×120**：一排放得下 5 张。
+    /// - 左/右 = 纵向排一列 → **高度**是瓶颈 → 卡压矮 → **4:3 横版 120×90**：一列放得下 5 张。
     ///
-    /// 为什么必须这么小：一屏要看得见 **5 张**。5×160 + 4×12 + 边距 = 932 宽；
-    /// 5×120 + 4×12 + 边距 = 760 高 —— 笔记本屏（可用 ~875）装得下。
-    /// 若坚持 208 宽的卡，一屏只能放 3 张半，那就回到“抽屉里翻东西”的老路上。
-    static let horizontalCard = CGSize(width: 160, height: 120)   // 4:3 横版（顶/底）
-    static let verticalCard = CGSize(width: 90, height: 120)      // 3:4 竖版（左/右）
+    /// 上一版我把这条接反了（顶/底做成 160×120 横卡、左右做成 90×120 竖卡），
+    /// 结果横排放不下、纵排放不下，两边都在"抽屉里翻东西"。
+    /// 注意这不是"转置"：横版和竖版是在**不同的边**上为了不同的瓶颈各自压出来的，
+    /// 所以不要求两边面积相等，只要求**两边首屏都能装 5 张**。
+    static let horizontalCard = CGSize(width: 90, height: 120)    // 3:4 竖版（顶/底）
+    static let verticalCard = CGSize(width: 120, height: 90)      // 4:3 横版（左/右）
 
     /// 内容井 = 卡内扣掉头部 18pt、Info 行与内边距后的可用区，比例**跟随卡本身**。
     /// 填充方式见 `ContentWellFill`（一律 cover，微博 / Instagram 逻辑：先看信息，不是先看图）。
+
+    /// 卡内三段（头部 / 内容槽 / Info）之间的纵向间距。
+    /// HTML `.group` 是 `gap:9px`，但它的卡高 236；我们的卡高 160，
+    /// 按比例折到 5——9 会在这张卡上把内容槽吃掉一成。
+    static let cardInnerSpacing: CGFloat = 5
 }

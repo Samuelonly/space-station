@@ -159,26 +159,57 @@ enum SelfCheck {
             "\(baseline.cnLabel) · \(baseline.scrollsHorizontally ? "横向" : "纵向")"
         ))
 
-        // 顶/底 = 横排 → 4:3 横版；左/右 = 纵排 → 3:4 竖版。
+        // **哪边是瓶颈就压哪边**（用户 2026-11-18 最终口径）：
+        //   顶/底 = 横向排 → 宽度是瓶颈 → 压窄 → 3:4 竖版
+        //   左/右 = 纵向排 → 高度是瓶颈 → 压矮 → 4:3 横版
+        // 上一版把这条接反过一次，两边都在"抽屉里翻东西"，所以钉进 L1。
         items.append(check(
-            "卡比例·顶/底为 4:3 横版",
-            top.width > top.height && abs(top.width / top.height - 4.0 / 3.0) < 0.01
+            "卡比例·顶/底为 3:4 竖版（压窄才装得下 5 张）",
+            top.height > top.width && abs(top.width / top.height - 3.0 / 4.0) < 0.01
                 && bottom == top,
             "\(Int(top.width))×\(Int(top.height))"
         ))
         items.append(check(
-            "卡比例·左/右为 3:4 竖版",
-            left.height > left.width && abs(left.width / left.height - 3.0 / 4.0) < 0.01
+            "卡比例·左/右为 4:3 横版（压矮才装得下 5 张）",
+            left.width > left.height && abs(left.width / left.height - 4.0 / 3.0) < 0.01
                 && right == left,
             "\(Int(left.width))×\(Int(left.height))"
         ))
-        // 两边**同高**（120 = 40×3），只是转置方向不同；不再要求体积相等——
-        // 横向要给 5 张留出 160 的宽度，纵向必须缩到 90，两者本来就不是同一个面积。
+
+        // **图片卡尺寸跟随图片比例**（DockDoor 的核心做法），clamp 在 2:3 ~ 3:2。
+        // 这条取代了“固定形状 + cover 硬裁”，后者会把手机截图裁成局部特写。
+        let phoneCard = EdgePosition.top.cardSize(imageAspect: 9.0 / 19.5)
+        let wideShot = EdgePosition.top.cardSize(imageAspect: 16.0 / 10.0)
+        let phoneCardSide = EdgePosition.left.cardSize(imageAspect: 9.0 / 19.5)
         items.append(check(
-            "卡尺寸·两边同高 120（40×3）",
-            abs(top.height - left.height) < 0.01
-                && abs(top.height - 120) < 0.01,
-            "横 \(Int(top.width))×\(Int(top.height)) / 竖 \(Int(left.width))×\(Int(left.height))"
+            "图片卡·手机竖图(9:19.5)按比例伸缩且不窄于 2:3",
+            phoneCard.width < phoneCard.height
+                && abs(phoneCard.width / phoneCard.height - ContentWellFill.minAspect) < 0.02,
+            "\(Int(phoneCard.width))×\(Int(phoneCard.height))"
+        ))
+        items.append(check(
+            "图片卡·宽截图(16:10)不宽于 3:2",
+            wideShot.width > wideShot.height
+                && abs(wideShot.width / wideShot.height - ContentWellFill.maxAspect) < 0.02,
+            "\(Int(wideShot.width))×\(Int(wideShot.height))"
+        ))
+        // 纵向也锁高度：90 高不动，宽度按比例 —— 一列才装得下 5 张。
+        items.append(check(
+            "图片卡·纵向同样锁高 90（一列装得下 5 张）",
+            abs(phoneCardSide.height - 90) < 0.01
+                && phoneCardSide.width < phoneCardSide.height,
+            "\(Int(phoneCardSide.width))×\(Int(phoneCardSide.height))"
+        ))
+        // 裁切率上限：clamp 之后最坏情况是 1 − 2/3 ≈ 0.334，超过就是“局部特写”回来了。
+        let worstCrop = ContentWellFill.verticalCropRatio(
+            image: CGSize(width: 9, height: 19.5),
+            well: phoneCard
+        )
+        items.append(check(
+            "图片卡·最坏裁切率 ≤ 1/3（不再出现局部特写）",
+            worstCrop <= ContentWellFill.maxCropRatio + 0.02,
+            String(format: "%.0f%% / 上限 %.0f%%",
+                   worstCrop * 100, ContentWellFill.maxCropRatio * 100)
         ))
 
         // **一屏 5 张**是产品硬指标，不是形容词。

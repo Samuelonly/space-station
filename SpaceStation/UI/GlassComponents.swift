@@ -108,15 +108,30 @@ struct ContainerGlass<Content: View>: View {
                         blending: .behindWindow,
                         cornerRadius: cornerRadius
                     )
-                    // 极淡染色：不是“半透明遮罩”，是给玻璃一个色温。
-                    shape.fill(Color.primary.opacity(StationMetrics.shellTint))
-                    shape.strokeBorder(
-                        StationMetrics.shellRimGradient,
-                        lineWidth: StationMetrics.borderWidth
+                    // 站体渐变：白 .115 → .042（HTML `.station`）。
+                    // 这不是“遮罩”，是让玻璃有上下色温差——均匀的一层只会像毛玻璃纸。
+                    shape.fill(
+                        LinearGradient(
+                            colors: [
+                                .white.opacity(StationMetrics.Glass.shellTop),
+                                .white.opacity(StationMetrics.Glass.shellBottom),
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
                     )
+                    // 边框 0.175（HTML `.station` border）：比卡片的 0.18 略淡，
+                    // 因为壳更大，同样的 alpha 在大面积上会更抢眼。
+                    shape.strokeBorder(.white.opacity(0.175), lineWidth: StationMetrics.borderWidth)
                 }
                 .clipShape(shape)
             }
+            // 站体投影（HTML `0 26px 72px rgba(0,0,0,.46)`）。
+            .shadow(
+                color: .black.opacity(StationMetrics.Glass.shellShadowOpacity),
+                radius: StationMetrics.Glass.shellShadowRadius,
+                y: StationMetrics.Glass.shellShadowY
+            )
     }
 }
 

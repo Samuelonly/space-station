@@ -33,6 +33,8 @@ struct StationCard: View {
     @State private var appInfo: SourceAppResolver.Info?
 
     private var effectiveSelected: Bool { isSelected || isHovering }
+    /// 是不是「正在被指着/选中」——投影加深用。语义上等于 effectiveSelected。
+    private var isEmphasized: Bool { effectiveSelected }
     private var isDark: Bool { colorScheme == .dark }
     private var isLandscape: Bool { size.width > size.height }
     /// 圆角随卡尺寸缩放（窄卡不许圆成胶囊）。
@@ -71,17 +73,20 @@ struct StationCard: View {
         ZStack(alignment: .topLeading) {
             background
 
-            VStack(alignment: .leading, spacing: 6) {
-                header
-                content
-                Spacer(minLength: 0)
-                infoLine
+            // **两种卡是两种结构，不是同一套缩排换内容。**
+            //
+            // 图片卡照 DockDoor：**整张卡就是图**，来源与时间作为浮层压在图上。
+            // 之前我把图塞进「头部 + 内容槽 + Info 行」三行里，内容槽只剩一小块，
+            // 一张截图再 cover 进去就变成局部特写——用户原话「太奇怪了」。
+            // 卡片本身已经按图片比例伸缩（见 EdgePosition.cardSize(imageAspect:)），
+            // 所以图铺满整卡时裁切量很小，不需要那个"窗口"。
+            if kind == .image {
+                imageCard
+            } else {
+                textCard
             }
-            .padding(contentPadding)
-            .frame(width: size.width, height: size.height, alignment: .topLeading)
-            .clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
 
-            // [A-3] 动作组件：右上角、hover 才显形（§17.4），不再占底部一行。
+            // [A-3] 动作组件：右上角、hover 才显形（§17.4）。
             actionCluster
                 .padding(contentPadding - 2)
                 .frame(width: size.width, height: size.height, alignment: .topTrailing)
@@ -89,9 +94,8 @@ struct StationCard: View {
                 .allowsHitTesting(isHovering)
                 .animation(StationMetrics.hoverAnimation, value: isHovering)
 
-            // [A-4] hover 只让**卡自己的边**亮起来（在上面 background 里画）；
-            // 蓝色实线只属于“选中”，两者不再混用一套视觉。
-            if isSelected { selectionBorder }
+            // [A-4] 选中与 hover 共用一圈蓝边（HTML 口径），内容像素一点都不动。
+            if effectiveSelected { accentBorder }
         }
         .overlay(alignment: .bottomLeading) {
             if showPrediction, let predictedAction {
@@ -103,9 +107,10 @@ struct StationCard: View {
         .frame(width: size.width + StationMetrics.innerPadding * 2,
                height: size.height + StationMetrics.innerPadding * 2)
         .contentShape(Rectangle())
-        // [A-3] 悬停“抬起”：几何缩放 1.025 + 同步加深的柔光。
-        // 放在 contentShape 之后，命中区域仍是原尺寸，不会因为卡变大而抖。
-        .scaleEffect(isHovering ? StationMetrics.hoverScale : 1)
+        // [A-3] 悬停“抬起”：HTML `.card:hover{transform:translateY(-2px)}` +
+        // `.group{scale(1.012)}`。比之前的 1.025 更克制——卡已经很小，再放大会挤到邻卡。
+        .scaleEffect(isHovering ? StationMetrics.Glass.hoverScale : 1)
+        .offset(y: isHovering ? -StationMetrics.Glass.hoverLift : 0)
         .zIndex(isHovering ? 10 : 0)
         .onContinuousHover { phase in
             switch phase {
@@ -155,77 +160,94 @@ struct StationCard: View {
         RoundedRectangle(cornerRadius: radius, style: .continuous)
     }
 
-    /// 卡内边距随卡宽收放：90pt 的窄卡用 8 会把内容井压成一条缝。
-    private var contentPadding: CGFloat { size.width < 120 ? 5 : 8 }
+    /// 卡内边距：90pt 的窄卡用 8 会把内容压成一条缝，收到 5。
+    private var contentPadding: CGFloat { min(size.width, size.height) < 100 ? 5 : 7 }
+    /// 文本卡的薄纸内边距（HTML `.sheet` padding: 9px @186 宽 → 按比例收到 5）。
+    private var sheetPadding: CGFloat { min(size.width, size.height) < 100 ? 5 : 6 }
+    /// 薄纸圆角：永远比卡小一圈，视觉上才是“卡里嵌了一张纸”。
+    private var sheetRadius: CGFloat { max(5, radius - 4) }
 
-    /// **卡 = 实体纸片，不是第二层玻璃。**
+    /// **卡 = 玻璃 + 渐变 + 顶部受光 + 描边 + 投影**，直接照 HTML `.group` 搬。
     ///
-    /// 这条是划清“原型感”和“产品感”的地方：一张纸能看出厚度，靠的不是透明度，
-    /// 是**受光 + 投影**。所以卡片彻底退出玻璃体系——
-    ///   ① 实色底（窗底色），桌面不再透上来；
-    ///   ② 顶部受光：光从上方来，卡顶提亮、到中线消失（浅色模式才明显）；
-    ///   ③ 两层阴影：接触阴影（贴地）+ 环境阴影（离地），静止时就存在；
-    ///   ④ 1pt 内描边收住轮廓。
-    /// 上一版卡是 72% 半透明 + 无阴影，等于“白纸贴在玻璃上”，一眼就是画的。
-    /// 顺带的好处：5 张卡不再各占一个 `NSVisualEffectView`，少五层实时模糊。
+    /// 上一版我把卡改成「不透明窗底色 + 单层受光」，理由是“纸才有厚度”。
+    /// 那个判断是错的，而且方向正好相反：**HTML 里卡就是玻璃，纸是里面那层 `sheet`。**
+    /// 卡如果是不透明实色，它和站体之间就没有“同一块玻璃上浮着一层”的关系，
+    /// 整个界面立刻变成“显示器上贴了几张便利贴”——这就是用户说的“不如 HTML”。
+    ///
+    /// 现在对齐 HTML `.group`：
+    ///   背景 `linear-gradient(180deg, 白 .125, 白 .045)`（比站体的 .115/.042 略亮 → 卡浮起来）
+    ///   `backdrop-filter: blur(14)`            → `VibrancyView(.hudWindow)`
+    ///   `border: 1px rgba(255,255,255,.18)`    → 卡“有形”的主要来源
+    ///   `inset 0 1px 0 rgba(255,255,255,.25)`  → 顶部一条 1px 受光
+    ///   `0 9px 24px rgba(0,0,0,.30)`           → 投影
     private var background: some View {
-        shape
-            .fill(Color(nsColor: .windowBackgroundColor))
-            .overlay {
-                // 受光：从顶部到底部中线，白光衰减到 0。
-                shape.fill(
-                    LinearGradient(
-                        colors: [
-                            .white.opacity(isDark ? 0.09 : 0.62),
-                            .white.opacity(0),
-                        ],
-                        startPoint: .top,
-                        endPoint: .center
-                    )
+        ZStack {
+            // 真玻璃。`.hudWindow` 是深色 HUD 材质，跟 HTML 的深色玻璃最接近。
+            VibrancyView(
+                material: .hudWindow,
+                blending: .behindWindow,
+                cornerRadius: radius
+            )
+            // 渐变：上亮下暗。这一层让玻璃“有厚度”，不是一块均匀的磨砂。
+            shape.fill(
+                LinearGradient(
+                    colors: [
+                        .white.opacity(StationMetrics.Glass.cardTop),
+                        .white.opacity(StationMetrics.Glass.cardBottom),
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
                 )
-            }
-            .overlay {
-                shape.strokeBorder(.primary.opacity(0.075), lineWidth: 1)
-            }
-            .padding(-StationMetrics.innerPadding)
-            // 两层阴影：近距离的“接触”＋远距离的“环境”。只有一层会显脏，
-            // 只有远层会显飘——真实物体的影子永远有这两个成分。
-            .shadow(
-                color: .black.opacity(isDark ? 0.38 : 0.10),
-                radius: isHovering ? 2.5 : 1.5,
-                y: isHovering ? 2 : 1
             )
-            .shadow(
-                color: .black.opacity(isDark ? 0.30 : (isHovering ? 0.16 : 0.10)),
-                radius: isHovering ? 16 : 10,
-                y: isHovering ? 7 : 4
+            // 描边 0.18（HTML border）—— 卡有没有“形”，全靠这一条。
+            shape.strokeBorder(
+                .white.opacity(StationMetrics.Glass.cardBorder),
+                lineWidth: 1
             )
-            // **hover = 渲染卡片自己的边缘**（用户 2026-11-18 反复强调）。
-            // 不是盖一层半透明色块，也不是缩放把内容糊掉：只是让这一圈边亮起来，
-            // 光从左上进来、往右下走。内容像素一个都不动。
-            .overlay {
-                shape
-                    .strokeBorder(
-                        LinearGradient(
-                            colors: [.white.opacity(isHovering ? StationMetrics.hoverRimOpacity : 0),
-                                     .white.opacity(isHovering ? StationMetrics.hoverRimOpacity * 0.15 : 0)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        lineWidth: 1
-                    )
-                    .padding(-StationMetrics.innerPadding)
-                    .allowsHitTesting(false)
-            }
+            // 顶部 1px 受光：只在上边缘，往下 1pt 就消失（HTML inset 0 1px 0 .25）。
+            shape.strokeBorder(
+                LinearGradient(
+                    colors: [
+                        .white.opacity(StationMetrics.Glass.cardTopHighlight),
+                        .white.opacity(0),
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                ),
+                lineWidth: 1
+            )
+        }
+        .clipShape(shape)
+        .padding(-StationMetrics.innerPadding)
+        .shadow(
+            color: .black.opacity(isEmphasized
+                ? StationMetrics.Glass.cardShadowHoverOpacity
+                : StationMetrics.Glass.cardShadowOpacity),
+            radius: isEmphasized
+                ? StationMetrics.Glass.cardShadowHoverRadius
+                : StationMetrics.Glass.cardShadowRadius,
+            y: isEmphasized
+                ? StationMetrics.Glass.cardShadowHoverY
+                : StationMetrics.Glass.cardShadowY
+        )
     }
 
-    /// 选中态 = **一圈算出来的蓝边**（画在卡自己的轮廓上，不向内垫、不盖蒙版）。
-    /// 以前是“整卡盖 40% 蓝”＋“外圈描边”，等于给内容蒙了层蓝纱，越选越看不清。
-    private var selectionBorder: some View {
+    /// 选中与 hover **共用一套蓝边**（HTML `.card:hover .group, .card.is-selected .group`）。
+    ///
+    /// 用户之前说过「hover 只渲染边缘、不要遮罩」——对，但颜色我给错了：
+    /// 我做成了白光边，把蓝色留给了选中。HTML 里两者都是 `1.5px var(--blue)`
+    /// 加 `0 0 0 3px rgba(10,132,255,.13)` 的外圈光晕，只是 hover 会 `scale(1.012)` 抬起来。
+    /// 蓝色就是“我要用这张卡”的通用信号，不该分裂成两套语义。
+    private var accentBorder: some View {
         shape
-            .strokeBorder(Color.accentColor, lineWidth: StationMetrics.selectionStrokeWidth)
-            .shadow(color: Color.accentColor.opacity(0.35),
-                    radius: StationMetrics.selectionGlowRadius)
+            .strokeBorder(
+                StationMetrics.Glass.accent,
+                lineWidth: StationMetrics.Glass.accentBorderWidth
+            )
+            .shadow(
+                color: StationMetrics.Glass.accent.opacity(0.40),
+                radius: 4
+            )
             .allowsHitTesting(false)
     }
 
@@ -235,10 +257,11 @@ struct StationCard: View {
         HStack(spacing: 4) {
             iconView
             Text(displayName)
-                .font(.system(size: size.width < 120 ? 9 : 10))
+                .font(.system(size: 9))
                 .lineLimit(1)
                 .truncationMode(.tail)
-                .foregroundStyle(.secondary)
+                // 深色玻璃卡上用白色半透明（HTML `.app-name` 是 `rgba(255,255,255,.72)`）。
+                .foregroundStyle(.white.opacity(0.70))
             Spacer(minLength: 0)
         }
         .frame(height: StationMetrics.headerHeight)
@@ -269,49 +292,91 @@ struct StationCard: View {
         return bundleID.split(separator: ".").last.map(String.init) ?? bundleID
     }
 
-    // MARK: - [A-1] 内容层
+    // MARK: - [A-1] 图片卡：整卡就是图（DockDoor 结构）
 
-    @ViewBuilder
-    private var content: some View {
-        if kind == .image {
-            imageContent
-        } else {
-            textContent
+    /// 图片卡**没有**「头部行 / 内容槽 / Info 行」这三段。
+    ///
+    /// DockDoor 的窗口预览卡是：**图片铺满整张卡**，窗口标题与按钮以 pill 形式
+    /// 浮在图上（`WindowPreview.swift:244-289`）。它敢这么做的前提是卡片尺寸已按
+    /// 图片比例算好（`WindowPreview Supporting/DynamicWindowFrameModifier.swift`），
+    /// 所以图既不会被裁成一条缝，也不会变成局部特写。
+    ///
+    /// 我们照做。上一版把图塞进一个小内容槽，90pt 的卡里槽只剩 78×70，
+    /// 一张手机截图 cover 进去就是「局部特写」——这正是用户说“太奇怪了”的东西。
+    ///
+    /// 信息用最小代价浮在图上：
+    ///   左上 = 来源 App 图标（圆形暗底，保证在任何亮度的图上都看得见）
+    ///   左下 = 相对时间（底部 28% 渐变托底，不是给整张卡盖蒙版）
+    private var imageCard: some View {
+        ZStack(alignment: .bottomLeading) {
+            // 主色铺底：缩略图未解码时，卡里是一块从画面取来的颜色，不是灰块。
+            Rectangle().fill(tintColor.opacity(0.65))
+
+            if let thumbnail {
+                Image(nsImage: thumbnail)
+                    .resizable()
+                    .interpolation(.high)
+                    .aspectRatio(contentMode: imageContentMode)
+                    .frame(width: size.width, height: size.height,
+                           alignment: imageAlignment)
+                    .clipped()
+            } else {
+                Image(systemName: "photo")
+                    .font(.system(size: 18))
+                    .foregroundStyle(.white.opacity(0.30))
+                    .frame(width: size.width, height: size.height)
+            }
+
+            // 底部渐变压暗：只压最后 28%，保证时间可读，不碰内容主体。
+            VStack(spacing: 0) {
+                Spacer(minLength: 0)
+                LinearGradient(
+                    colors: [.clear, .black.opacity(0.55)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(height: max(18, size.height * 0.28))
+            }
+            .allowsHitTesting(false)
+
+            Text(infoText)
+                .font(.system(size: 8.5, weight: .medium))
+                .foregroundStyle(.white.opacity(0.92))
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+                .padding(.horizontal, 5)
+                .padding(.bottom, 4)
+        }
+        .frame(width: size.width, height: size.height)
+        .clipShape(shape)
+        .overlay(alignment: .topLeading) {
+            iconView
+                .padding(4)
+                .background(Circle().fill(.black.opacity(0.30)))
+                .padding(4)
         }
     }
 
-    private var imageContent: some View {
-        GeometryReader { geo in
-            let well = geo.size
-            ZStack {
-                // 主色铺底：缩略图还没解码出来时，井里是一块从画面里取来的颜色，不是灰块。
-                RoundedRectangle(cornerRadius: wellRadius, style: .continuous)
-                    .fill(tintColor.opacity(0.55))
+    // MARK: - 文本卡：头部 + 薄纸 + Info
 
-                if let thumbnail {
-                    // **一律 cover（Instagram / 微博逻辑）+ 顶部锚点（2026-11-18）**：
-                    // 井里没有留白；超出部分先裁底部、保住开头。
-                    // 居中裁会让手机截图只剩中间一块空白——那才是最糟的取景。
-                    Image(nsImage: thumbnail)
-                        .resizable()
-                        .interpolation(.high)
-                        .aspectRatio(contentMode: ContentWellFill.contentMode)
-                        .frame(width: well.width, height: well.height,
-                               alignment: ContentWellFill.alignment)
-                        .clipped()
-                } else {
-                    Image(systemName: "photo")
-                        .font(.system(size: 18))
-                        .foregroundStyle(.tertiary)
+    /// 文本卡保留三段（它没有图可以铺满），但**不套 viewport+sheet 双层**——
+    /// 在 90×120 的卡里套两层只会把可用面积切得更碎。这里只留一层薄纸
+    /// （HTML `.sheet` 的 `rgba(255,255,255,.045)`），文字从纸上浮出来。
+    private var textCard: some View {
+        VStack(alignment: .leading, spacing: StationMetrics.cardInnerSpacing) {
+            header
+            textContent
+                .padding(sheetPadding)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .background {
+                    RoundedRectangle(cornerRadius: sheetRadius, style: .continuous)
+                        .fill(.white.opacity(StationMetrics.Glass.sheetFill))
                 }
-            }
-            .frame(width: well.width, height: well.height)
-            .clipShape(RoundedRectangle(cornerRadius: wellRadius, style: .continuous))
-            .overlay {
-                RoundedRectangle(cornerRadius: wellRadius, style: .continuous)
-                    .strokeBorder(.primary.opacity(0.08), lineWidth: 1)
-            }
+            infoLine
         }
+        .padding(contentPadding)
+        .frame(width: size.width, height: size.height, alignment: .topLeading)
+        .clipShape(shape)
     }
 
     private var tintColor: Color {
@@ -319,21 +384,34 @@ struct StationCard: View {
         return Color.primary.opacity(0.06)
     }
 
+    /// 图片一律 cover，锚点顶部。
+    ///
+    /// 之前"cover 会裁成局部特写 / fit 会变成一条缝"的两难，根源不在填充方式，
+    /// 而在**卡的形状没有贴合图片**。现在卡宽已经按图片比例算过
+    /// （`EdgePosition.cardSize(imageAspect:)`），clamp 在 2:3 ~ 3:2，
+    /// 所以 cover 最多只裁掉 1/3，两个极端都不会出现。
+    private var imageContentMode: ContentMode { ContentWellFill.contentMode }
+
+    private var imageAlignment: Alignment { ContentWellFill.alignment }
+
     private var textContent: some View {
-        // 文字卡要像**一段摘录**，不像标题：字号压到 11、行距松一点、
-        // 用满可用高度。上一版 12pt + 3 行，在 120 高的卡里显得又大又空。
         Text(bodyText)
-            .font(.system(size: size.width < 120 ? 9.5 : 11))
-            .tracking(size.width < 120 ? -0.15 : 0)
+            .font(.system(size: textPointSize))
+            .tracking(size.width < 100 ? -0.15 : 0)
             .lineSpacing(1)
-            .lineLimit(isLandscape ? 4 : 5)
+            .lineLimit(isLandscape ? 3 : 5)
             .truncationMode(.tail)
-            // 窄卡上缩一点字、收一点字距，宁可挤也不许把 “SpaceStation.app” 拆成
-            // “SpaceStation.ap / p”——断词比截断难看十倍（§17.3 的同一原则）。
+            // 窄卡上缩字、收字距，宁可挤也不许把 “SpaceStation.app” 拆成两行断词。
             .allowsTightening(true)
-            .minimumScaleFactor(0.86)
-            .foregroundStyle(.primary.opacity(0.88))
+            .minimumScaleFactor(0.82)
+            .foregroundStyle(.white.opacity(0.90))
             .frame(maxWidth: .infinity, alignment: .topLeading)
+    }
+
+    /// 文本字号：90pt 宽的卡用 9，120pt 用 10（HTML 在 186pt 卡上是 10.5）。
+    private var textPointSize: CGFloat {
+        let short = min(size.width, size.height)
+        return short < 100 ? 9 : 10
     }
 
     private var bodyText: String {
@@ -348,8 +426,9 @@ struct StationCard: View {
 
     private var infoLine: some View {
         Text(infoText)
-            .font(.system(size: size.width < 120 ? 8.5 : 9))
-            .foregroundStyle(.secondary)
+            .font(.system(size: 8))
+            // HTML `.status` 是 `rgba(255,255,255,.46)`。
+            .foregroundStyle(.white.opacity(0.46))
             .lineLimit(1)
             .minimumScaleFactor(0.75)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -357,9 +436,9 @@ struct StationCard: View {
 
     private var infoText: String {
         var parts = [Self.relativeTime(item.lastCopiedAt)]
-        // 窄卡（90pt）放不下“3 分钟前 · 1.2 MB · ×2”，只留时间与次数；
+        // 窄卡放不下“3 分钟前 · 1.2 MB · ×2”，只留时间与次数；
         // 反正完整信息 hover 有 tooltip、QuickLook 里有全貌。
-        if size.width >= 120 {
+        if size.width >= 100 {
             if let second = secondaryInfo { parts.append(second) }
         }
         if item.numberOfCopies > 1 { parts.append("×\(item.numberOfCopies)") }
@@ -435,8 +514,12 @@ struct StationCard: View {
         }
         .padding(.horizontal, 4)
         .padding(.vertical, 1)
-        .background(.regularMaterial, in: Capsule())
-        .overlay(Capsule().strokeBorder(.primary.opacity(0.08), lineWidth: 1))
+        // HTML `.action-cluster`：`rgba(255,255,255,.075)` + 边框 0.13。
+        // 不用 `.regularMaterial`——那是第二个材质层，在玻璃卡上会糊成一片。
+        .background(
+            Capsule().fill(.white.opacity(0.10))
+        )
+        .overlay(Capsule().strokeBorder(.white.opacity(0.14), lineWidth: 1))
     }
 
     /// 动作组件里的 SF 图标：外框 16、图标 14（用户 2026-11-18 口径：

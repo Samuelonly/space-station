@@ -57,6 +57,14 @@ final class FloatingPanel<Content: View>: NSPanel, NSWindowDelegate {
         isOpaque = false
         hasShadow = true
 
+        // **面板固定深色外观**（2026-11-18 对齐 HTML）。
+        //
+        // HTML 原型的整套语言是深色的：站体是深色玻璃、卡是深色玻璃、文字是白色。
+        // 之前跟随系统外观，在浅色模式下 `NSVisualEffectView` 直接退化成一层白雾，
+        // 白卡 + 白底 = 用户说的「连 HTML 原型都不如」。玻璃要有“透”，背后必须是暗的。
+        // 这不是“强制暗黑模式”，是这类常驻工具面板的惯例（DockDoor、Raycast 同款）。
+        appearance = NSAppearance(named: .darkAqua)
+
         standardWindowButton(.closeButton)?.isHidden = true
         standardWindowButton(.miniaturizeButton)?.isHidden = true
         standardWindowButton(.zoomButton)?.isHidden = true

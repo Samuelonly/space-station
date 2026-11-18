@@ -240,7 +240,10 @@ struct CardGridView: View {
         ForEach(items, id: \.persistentModelID) { item in
             StationCard(
                 item: item,
-                size: edge.cardSize,
+                // **每张卡自己的尺寸**：图片卡宽 = 卡高 × 图片比例（clamp 2:3~3:2），
+                // 文本卡用基准尺寸。这就是 DockDoor 的 dynamicWindowFrame 思路——
+                // 卡跟着内容走，而不是把内容硬塞进一个固定形状里再裁。
+                size: cardSize(for: item),
                 isSelected: stationState.selectedID == item.persistentModelID,
                 onSelect: { stationState.selectedID = item.persistentModelID },
                 onPaste: { Clipboard.shared.copy(item) },
@@ -248,6 +251,17 @@ struct CardGridView: View {
                 onFlavor: { cycleFlavor(item) }
             )
         }
+    }
+
+    /// 卡尺寸：命中缓存就不碰 `imageData`（那个每次都要从 SwiftData 取 blob）。
+    private func cardSize(for item: HistoryItem) -> CGSize {
+        let id = String(describing: item.persistentModelID)
+        if let cached = ImageAspect.cachedValue(id: id) {
+            return edge.cardSize(imageAspect: cached > 0 ? cached : nil)
+        }
+        let ratio = item.imageData.flatMap(ImageAspect.ratio(for:)) ?? 0
+        ImageAspect.store(id: id, value: ratio)
+        return edge.cardSize(imageAspect: ratio > 0 ? ratio : nil)
     }
 
     // MARK: - §8 (c) drop-to-Favorite

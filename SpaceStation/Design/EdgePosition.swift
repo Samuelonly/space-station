@@ -30,9 +30,32 @@ enum EdgePosition: String, CaseIterable, Sendable {
         }
     }
 
-    /// 卡的比例**随边反转**：顶/底（横排）→ 4:3 横版；左/右（纵排）→ 3:4 竖版。
+    /// 卡的比例**由排列方向决定**：哪边是瓶颈就压哪边（见 `StationMetrics`）。
+    /// 顶/底（横排）→ 3:4 竖版 90×120；左/右（纵排）→ 4:3 横版 120×90。
     var cardSize: CGSize {
         scrollsHorizontally ? StationMetrics.horizontalCard : StationMetrics.verticalCard
+    }
+
+    /// **图片卡的宽度跟随图片比例，高度锁死。**
+    ///
+    /// 这是 DockDoor 的做法（`Window Image Sizing Calculations.swift`：
+    /// thickness 固定，另一维 = thickness × aspectRatio，clamp 到 `dynamicMaxAspectRatio = 1.5`），
+    /// 只是它固定在底部 dock，我们两条边都要成立。
+    ///
+    /// 为什么两条边都锁**高度**：
+    /// - 顶/底（横排）：高度锁 120，宽度在 80~180 之间伸缩 → 一排仍装得下 5 张；
+    /// - 左/右（纵排）：高度锁 90，宽度在 60~135 之间伸缩 → 一列装得下 5 张。
+    ///   纵向的瓶颈本来就是高度，如果让卡跟着竖图长到 260pt，一屏只剩 2 张，
+    ///   正是用户说的“能放的卡片太少”。
+    ///
+    /// 卡宽不齐**不是缺陷**：DockDoor 的窗口预览就是一排宽窄不一的卡，
+    /// 因为每张卡都完整地是自己的内容。等宽卡片只能靠裁切或留白换，
+    /// 而这两个正是用户已经否掉的（“局部特写”和“一条缝”）。
+    func cardSize(imageAspect: CGFloat?) -> CGSize {
+        guard let imageAspect else { return cardSize }
+        let ratio = ContentWellFill.clampAspect(imageAspect)
+        let thickness = cardSize.height
+        return CGSize(width: (thickness * ratio).rounded(), height: thickness)
     }
 
     /// Which screen edge the rail hugs.
