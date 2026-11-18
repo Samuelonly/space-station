@@ -35,9 +35,15 @@ enum StationMetrics {
     static let dockStyleOuter: CGFloat = 2
     /// 纵向轨道左侧的纯图标栏宽（不再放文字，见 NavBar）。
     static let sidebarWidth: CGFloat = 44
-    /// 横向轨道上两行控件的实际高度（导航行 / 筛选行）。面板高度按它反推。
+    /// 横向轨道上控件行的实际高度。导航与筛选**合并成一行**——
+    /// 上一版两行共 56pt，占掉 208 高的 27%，读者第一眼看到的是一条工具条，
+    /// 而不是五张卡。合并后只剩 26pt，卡片重新成为主体。
+    static let headerRowHeight: CGFloat = 24
     static let navRowHeight: CGFloat = 22
     static let filterRowHeight: CGFloat = 22
+    /// 滚动区四周给**阴影**留的呼吸（每边）。卡片现在有 radius 10 的环境阴影，
+    /// 若让 ScrollView 贴着卡边裁，影子会被切掉半截，卡立刻“贴”回墙上。
+    static let railBleed: CGFloat = 6
 
     // MARK: - 首屏张数（这是硬指标，不是感觉）
     /// **一屏必须看得见 5 张卡**（用户 2026-11-18：只能看到 2.5 张就不对）。

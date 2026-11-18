@@ -44,16 +44,15 @@ struct CardGridView: View {
         ContainerGlass(cornerRadius: StationMetrics.containerRadius(for: edge.panelSize.width)) {
             Group {
                 if edge.scrollsHorizontally {
-                    // 顶/底：一行导航（图标 + 文字，水平排文字是正常的）+ 一行筛选。
-                    VStack(spacing: 4) {
-                        HStack(spacing: 4) {
+                    // 顶/底：**导航与筛选合并成一行**，把高度还给卡片。
+                    VStack(spacing: 6) {
+                        HStack(spacing: 8) {
                             NavBar(state: stationState, axis: .horizontal)
+                            FilterBar(state: stationState, items: tabItems)
                             Spacer(minLength: 0)
                             powerButton
                         }
-                        .frame(height: StationMetrics.navRowHeight)
-                        HStack(spacing: 6) { FilterBar(state: stationState, items: tabItems) }
-                            .frame(height: StationMetrics.filterRowHeight)
+                        .frame(height: StationMetrics.headerRowHeight)
                         railFrame
                     }
                 } else {
@@ -202,10 +201,10 @@ struct CardGridView: View {
         }
     }
 
-    /// §9: 该方向还有内容才显示（2pt 容差，规避浮点抖动）。
-    private var canScrollBackward: Bool { railGeometry.offset > 2 }
+    /// §9: 该方向还有内容才显示（4pt 容差，规避浮点抖动与 railBleed 的往返误差）。
+    private var canScrollBackward: Bool { railGeometry.offset > 4 }
     private var canScrollForward: Bool {
-        railGeometry.offset + railGeometry.viewport < railGeometry.content - 2
+        railGeometry.offset + railGeometry.viewport < railGeometry.content - 4
     }
 
     /// §11: 把当前可见卡的位图 key 上报缓存，使滑出视野的条目进入 10 秒淘汰计时。
@@ -226,11 +225,15 @@ struct CardGridView: View {
 
     @ViewBuilder
     private var railContent: some View {
-        if edge.scrollsHorizontally {
-            HStack(alignment: .top, spacing: StationMetrics.itemSpacing) { cards }
-        } else {
-            VStack(alignment: .leading, spacing: StationMetrics.itemSpacing) { cards }
+        Group {
+            if edge.scrollsHorizontally {
+                HStack(alignment: .top, spacing: StationMetrics.itemSpacing) { cards }
+            } else {
+                VStack(alignment: .leading, spacing: StationMetrics.itemSpacing) { cards }
+            }
         }
+        // 给卡片的环境阴影留出空间，别让 ScrollView 把它裁成一半。
+        .padding(StationMetrics.railBleed)
     }
 
     private var cards: some View {

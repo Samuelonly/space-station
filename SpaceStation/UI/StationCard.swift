@@ -19,6 +19,8 @@ struct StationCard: View {
     let onAction: (String) -> Void
     let onFlavor: () -> Void
 
+    @Environment(\.colorScheme) private var colorScheme
+
     /// hover 真值（带停留延迟，用于高亮 + 按钮显形 + 光效）
     @State private var isHovering = false
     /// 延迟计时进行中（防止鼠标微动反复重启计时，导致永远不触发）
@@ -31,6 +33,7 @@ struct StationCard: View {
     @State private var appInfo: SourceAppResolver.Info?
 
     private var effectiveSelected: Bool { isSelected || isHovering }
+    private var isDark: Bool { colorScheme == .dark }
     private var isLandscape: Bool { size.width > size.height }
     /// 圆角随卡尺寸缩放（窄卡不许圆成胶囊）。
     private var radius: CGFloat { StationMetrics.cardRadius(for: size) }
@@ -153,51 +156,67 @@ struct StationCard: View {
     }
 
     /// 卡内边距随卡宽收放：90pt 的窄卡用 8 会把内容井压成一条缝。
-    private var contentPadding: CGFloat { size.width < 120 ? 6 : 8 }
+    private var contentPadding: CGFloat { size.width < 120 ? 5 : 8 }
 
-    /// **卡 = 真玻璃 + 一层“压住它”的底色。**
+    /// **卡 = 实体纸片，不是第二层玻璃。**
     ///
-    /// 层级关系（2026-11-18 用户口径，第三次校准）：
-    ///   壳  = 只有玻璃，桌面直接透上来，边淡到看不见；
-    ///   卡  = 同一层玻璃，但上面压 72% 的系统底色 —— 所以卡是**实物**，不是第二层雾。
-    /// 上一版卡用 `.regularMaterial` 且整体没有底色，又和壳一起被 `.opacity(0.55)`
-    /// 拖成半透明，结果壳和卡一样灰，卡片“浮不起来”。
+    /// 这条是划清“原型感”和“产品感”的地方：一张纸能看出厚度，靠的不是透明度，
+    /// 是**受光 + 投影**。所以卡片彻底退出玻璃体系——
+    ///   ① 实色底（窗底色），桌面不再透上来；
+    ///   ② 顶部受光：光从上方来，卡顶提亮、到中线消失（浅色模式才明显）；
+    ///   ③ 两层阴影：接触阴影（贴地）+ 环境阴影（离地），静止时就存在；
+    ///   ④ 1pt 内描边收住轮廓。
+    /// 上一版卡是 72% 半透明 + 无阴影，等于“白纸贴在玻璃上”，一眼就是画的。
+    /// 顺带的好处：5 张卡不再各占一个 `NSVisualEffectView`，少五层实时模糊。
     private var background: some View {
-        ZStack {
-            VibrancyView(
-                material: .underWindowBackground,
-                blending: .behindWindow,
-                cornerRadius: radius
-            )
-            Color(nsColor: .windowBackgroundColor).opacity(0.72)
-        }
-        .clipShape(shape)
-        .overlay {
-            shape.strokeBorder(.primary.opacity(0.08), lineWidth: 1)
-        }
-        .padding(-StationMetrics.innerPadding)
-        .shadow(
-            color: .black.opacity(isHovering ? StationMetrics.hoverGlowOpacity : 0),
-            radius: isHovering ? StationMetrics.hoverGlowRadius : 0,
-            y: isHovering ? 3 : 0
-        )
-        // **hover = 渲染卡片自己的边缘**（用户 2026-11-18 反复强调）。
-        // 不是盖一层半透明色块，也不是缩放把内容糊掉：只是让这一圈边亮起来，
-        // 光从左上进来、往右下走。内容像素一个都不动。
-        .overlay {
-            shape
-                .strokeBorder(
+        shape
+            .fill(Color(nsColor: .windowBackgroundColor))
+            .overlay {
+                // 受光：从顶部到底部中线，白光衰减到 0。
+                shape.fill(
                     LinearGradient(
-                        colors: [.white.opacity(isHovering ? StationMetrics.hoverRimOpacity : 0),
-                                 .white.opacity(isHovering ? StationMetrics.hoverRimOpacity * 0.15 : 0)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    lineWidth: 1
+                        colors: [
+                            .white.opacity(isDark ? 0.09 : 0.62),
+                            .white.opacity(0),
+                        ],
+                        startPoint: .top,
+                        endPoint: .center
+                    )
                 )
-                .padding(-StationMetrics.innerPadding)
-                .allowsHitTesting(false)
-        }
+            }
+            .overlay {
+                shape.strokeBorder(.primary.opacity(0.075), lineWidth: 1)
+            }
+            .padding(-StationMetrics.innerPadding)
+            // 两层阴影：近距离的“接触”＋远距离的“环境”。只有一层会显脏，
+            // 只有远层会显飘——真实物体的影子永远有这两个成分。
+            .shadow(
+                color: .black.opacity(isDark ? 0.38 : 0.10),
+                radius: isHovering ? 2.5 : 1.5,
+                y: isHovering ? 2 : 1
+            )
+            .shadow(
+                color: .black.opacity(isDark ? 0.30 : (isHovering ? 0.16 : 0.10)),
+                radius: isHovering ? 16 : 10,
+                y: isHovering ? 7 : 4
+            )
+            // **hover = 渲染卡片自己的边缘**（用户 2026-11-18 反复强调）。
+            // 不是盖一层半透明色块，也不是缩放把内容糊掉：只是让这一圈边亮起来，
+            // 光从左上进来、往右下走。内容像素一个都不动。
+            .overlay {
+                shape
+                    .strokeBorder(
+                        LinearGradient(
+                            colors: [.white.opacity(isHovering ? StationMetrics.hoverRimOpacity : 0),
+                                     .white.opacity(isHovering ? StationMetrics.hoverRimOpacity * 0.15 : 0)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1
+                    )
+                    .padding(-StationMetrics.innerPadding)
+                    .allowsHitTesting(false)
+            }
     }
 
     /// 选中态 = **一圈算出来的蓝边**（画在卡自己的轮廓上，不向内垫、不盖蒙版）。
@@ -270,14 +289,15 @@ struct StationCard: View {
                     .fill(tintColor.opacity(0.55))
 
                 if let thumbnail {
-                    // **一律 cover（Instagram / 微博逻辑，2026-11-18）**：每个井形状一致，
-                    // 图片从中心铺满。宁可裁掉边角，也不许出现留白——用户要的是
-                    // “一眼看清这是什么”，不是“完整地看见整张截图”。完整版走 QuickLook。
+                    // **一律 cover（Instagram / 微博逻辑）+ 顶部锚点（2026-11-18）**：
+                    // 井里没有留白；超出部分先裁底部、保住开头。
+                    // 居中裁会让手机截图只剩中间一块空白——那才是最糟的取景。
                     Image(nsImage: thumbnail)
                         .resizable()
                         .interpolation(.high)
                         .aspectRatio(contentMode: ContentWellFill.contentMode)
-                        .frame(width: well.width, height: well.height)
+                        .frame(width: well.width, height: well.height,
+                               alignment: ContentWellFill.alignment)
                         .clipped()
                 } else {
                     Image(systemName: "photo")
@@ -300,10 +320,19 @@ struct StationCard: View {
     }
 
     private var textContent: some View {
+        // 文字卡要像**一段摘录**，不像标题：字号压到 11、行距松一点、
+        // 用满可用高度。上一版 12pt + 3 行，在 120 高的卡里显得又大又空。
         Text(bodyText)
-            .font(.system(size: size.width < 120 ? 10.5 : 12, weight: .medium))
-            .lineLimit(isLandscape ? 3 : 4)
+            .font(.system(size: size.width < 120 ? 9.5 : 11))
+            .tracking(size.width < 120 ? -0.15 : 0)
+            .lineSpacing(1)
+            .lineLimit(isLandscape ? 4 : 5)
             .truncationMode(.tail)
+            // 窄卡上缩一点字、收一点字距，宁可挤也不许把 “SpaceStation.app” 拆成
+            // “SpaceStation.ap / p”——断词比截断难看十倍（§17.3 的同一原则）。
+            .allowsTightening(true)
+            .minimumScaleFactor(0.86)
+            .foregroundStyle(.primary.opacity(0.88))
             .frame(maxWidth: .infinity, alignment: .topLeading)
     }
 

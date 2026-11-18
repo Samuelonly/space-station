@@ -209,6 +209,12 @@ enum SelfCheck {
             ContentWellFill.contentMode == .fill,
             "\(ContentWellFill.contentMode)"
         ))
+        // cover 之后还有取景锚点：竖图在横井里必须保住顶部，否则只剩中间一块空白。
+        items.append(check(
+            "内容井·裁切锚点在顶部",
+            ContentWellFill.alignment == .top,
+            "\(ContentWellFill.alignment)"
+        ))
 
         // 图标标尺：源 App 16、动作图标 14（外框 16，差 2 是给描边留的视觉补偿）。
         items.append(check(

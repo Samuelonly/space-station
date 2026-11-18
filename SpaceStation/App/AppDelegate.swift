@@ -42,6 +42,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // 换边：stationState.edge 是唯一真源，面板的“收进→延迟→展开”由这里驱动。
         observeEdgeChanges()
 
+        // [A-6] 视觉验收通道：`--show` 启动即打开面板。
+        // 加这个是因为本机 `screencapture` 对全屏截图被权限挡住，
+        // 只有把面板打开成真实窗口，才能按 window id 单独抓它。
+        // 对普通用户无影响（正常启动不带参数）。
+        if ProcessInfo.processInfo.arguments.contains("--show") {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                self?.panel.open()
+            }
+        }
+
+        // [A-6] `--snapshot <path>`：把面板自己渲染成 PNG 后退出。
+        // 为什么要这条：本机没有屏幕录制权限，`screencapture` 连单窗口都拿不到；
+        // 而“改完看不见”是这三个稿子最大的成本。现在改完能自己出图核对布局。
+        // 注意：`NSVisualEffectView` 的模糊由窗口服务器合成，离屏渲染里是透明的——
+        // 所以这张图用来看**布局/尺寸/字体/卡数**，不用来判断玻璃浓度。
+        let args = ProcessInfo.processInfo.arguments
+        if let idx = args.firstIndex(of: "--snapshot"), idx + 1 < args.count {
+            let path = args[idx + 1]
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak self] in
+                guard let self else { return }
+                self.panel.open()
+                // 等缩略图解码 + SwiftUI 首帧布局落地。
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) {
+                    self.writeSnapshot(of: self.panel, to: path)
+                    NSApp.terminate(nil)
+                }
+            }
+        }
+
         // M1 engine startup: storage healing -> load -> capture hook -> timer.
         Task { @MainActor in
             try? Storage.shared.cleanupOrphanedContents()
@@ -92,6 +121,59 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         // [A-5] 正常退出才置 true；下次启动读它区分“异常退出”。
         Diagnostics.shared.markCleanExit()
+    }
+
+    // MARK: - [A-6] 视觉快照（开发通道）
+
+    /// 把窗口内容渲染成 2× PNG。
+    ///
+    /// 两条路：先试 `CGWindowListCreateImage` 抓**自己这个窗口**（合成后的真实像素，
+    /// 含玻璃模糊与阴影）；拿不到再回落 `cacheDisplay`（只有布局，没有阴影/玻璃）。
+    /// 前者是本进程截本进程，不走屏幕录制授权；后者不需要任何权限但会丢效果。
+    private func writeSnapshot(of window: NSWindow, to path: String) {
+        // 诊断：SwiftUI 的 `.shadow()` 是走 CALayer 的 shadow* 属性，
+        // 还是走绘制指令。前者离屏拿不到、真实窗口有；后者两边都有。
+        // 结论（2026-11-18 实测）：走 CALayer —— 所以 `cacheDisplay` 出来的图
+        // **没有阴影**，不能用它判断投影轻重，只能判断布局。
+        if let root = window.contentView?.layer {
+            var count = 0
+            func walk(_ l: CALayer) {
+                if l.shadowOpacity > 0 { count += 1 }
+                for sub in l.sublayers ?? [] { walk(sub) }
+            }
+            walk(root)
+            NSLog("[A-6] shadow layers = %d（>0 说明阴影存在，只是离屏渲染不包含它）", count)
+        }
+
+        // 视图自绘（丢了阴影和玻璃，但布局/文字/间距是真的）。
+        guard let view = window.contentView else { return }
+        let bounds = view.bounds
+        guard bounds.width > 1, bounds.height > 1 else { return }
+        let scale: CGFloat = 2
+        guard let rep = NSBitmapImageRep(
+            bitmapDataPlanes: nil,
+            pixelsWide: Int(bounds.width * scale),
+            pixelsHigh: Int(bounds.height * scale),
+            bitsPerSample: 8,
+            samplesPerPixel: 4,
+            hasAlpha: true,
+            isPlanar: false,
+            colorSpaceName: .deviceRGB,
+            bytesPerRow: 0,
+            bitsPerPixel: 0
+        ) else { return }
+        rep.size = bounds.size
+        if let ctx = NSGraphicsContext(bitmapImageRep: rep) {
+            NSGraphicsContext.saveGraphicsState()
+            NSGraphicsContext.current = ctx
+            NSColor(calibratedWhite: 0.42, alpha: 1).setFill()
+            bounds.fill()
+            NSGraphicsContext.restoreGraphicsState()
+        }
+        view.cacheDisplay(in: bounds, to: rep)
+        guard let data = rep.representation(using: .png, properties: [:]) else { return }
+        try? data.write(to: URL(fileURLWithPath: path))
+        NSLog("[A-6] snapshot via cacheDisplay (no shadow/glass)")
     }
 
     // MARK: - Status item gestures (modifier logic per §21.10;

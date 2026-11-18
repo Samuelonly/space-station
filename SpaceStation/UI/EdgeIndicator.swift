@@ -11,8 +11,12 @@ enum EdgeIndicatorIcon {
     static let trailing = "chevron.right"
     static let upward = "chevron.up"
     static let downward = "chevron.down"
-    static let pointSize: CGFloat = 11   // §9: 6–12pt
-    static let opacity: Double = 0.55    // §9: 半透明 0.55
+    static let pointSize: CGFloat = 10   // §9: 6–12pt；原 11 在 22pt 宽的按钮里偏大
+    static let opacity: Double = 0.42    // §9: 半透明；0.55 在卡上太抢眼
+    /// 按钮热区。**不能太宽**：这个箭头是浮在卡片上的，22pt 宽会实实在在压掉
+    /// 最后一张卡右侧一条（用户截图里那个 `>` 就长在卡上）。
+    static let hitWidth: CGFloat = 14
+    static let hitHeight: CGFloat = 30
 }
 
 /// 持有 SwiftUI ScrollView 底下的 NSScrollView，供点击时做像素级翻页
@@ -54,7 +58,8 @@ struct EdgeChevron: View {
             Image(systemName: symbol)
                 .font(.system(size: EdgeIndicatorIcon.pointSize, weight: .semibold))
                 .foregroundStyle(.primary)
-                .frame(width: 22, height: 34)
+                .frame(width: EdgeIndicatorIcon.hitWidth,
+                       height: EdgeIndicatorIcon.hitHeight)
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

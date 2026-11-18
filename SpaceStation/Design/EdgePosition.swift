@@ -65,12 +65,13 @@ enum EdgePosition: String, CaseIterable, Sendable {
         let slot = (scrollsHorizontally ? cardSize.width : cardSize.height)
             + StationMetrics.innerPadding * 2
         let spacing = StationMetrics.itemSpacing
+        let bleed = StationMetrics.railBleed * 2
         let usable: CGFloat
         if scrollsHorizontally {
-            usable = panelSize.width - StationMetrics.inset * 2
+            usable = panelSize.width - StationMetrics.inset * 2 - bleed
         } else {
             usable = panelSize.height - StationMetrics.inset * 2
-                - StationMetrics.filterRowHeight - 4
+                - StationMetrics.filterRowHeight - 4 - bleed
         }
         guard slot + spacing > 0 else { return 0 }
         return Int(((usable + spacing) / (slot + spacing)).rounded(.down))
@@ -90,21 +91,21 @@ enum EdgePosition: String, CaseIterable, Sendable {
         let slotH = card.height + StationMetrics.innerPadding * 2
         let pad = StationMetrics.inset * 2
         let spacing = StationMetrics.itemSpacing
+        let bleed = StationMetrics.railBleed * 2
 
         if scrollsHorizontally {
             let rail = n * slotW + gaps * spacing
             let height = pad
-                + StationMetrics.navRowHeight + 4
-                + StationMetrics.filterRowHeight + 4
-                + slotH
-            return NSSize(width: pad + rail, height: height)
+                + StationMetrics.headerRowHeight + 6
+                + slotH + bleed
+            return NSSize(width: pad + rail + bleed, height: height)
         } else {
-            // 纵向：左侧 44pt 纯图标栏 + 6pt 缝 + 一列卡
+            // 纵向：左侧 44pt 纯图标栏 + 6pt 缝 + 一列卡 + 右侧呼吸。
             let rail = n * slotH + gaps * spacing
-            let width = pad + StationMetrics.sidebarWidth + 6 + slotW
+            let width = pad + StationMetrics.sidebarWidth + 6 + slotW + 24
             let height = pad
                 + StationMetrics.filterRowHeight + 4
-                + rail
+                + rail + bleed
             return NSSize(width: width, height: height)
         }
     }
