@@ -83,6 +83,10 @@ struct StationCard: View {
         .frame(width: size.width + StationMetrics.innerPadding * 2,
                height: size.height + StationMetrics.innerPadding * 2)
         .contentShape(Rectangle())
+        // [A-3] 悬停“抬起”：几何缩放 1.025 + 同步加深的柔光。
+        // 放在 contentShape 之后，命中区域仍是原尺寸，不会因为卡变大而抖。
+        .scaleEffect(isHovering ? StationMetrics.hoverScale : 1)
+        .zIndex(isHovering ? 10 : 0)
         .onContinuousHover { phase in
             switch phase {
             case .active: beginHoverDwell()
@@ -227,17 +231,26 @@ struct StationCard: View {
         GeometryReader { geo in
             let well = geo.size
             ZStack {
-                // 主色铺底：比例不匹配时留白处也是“画面的一部分”，不是灰条。
+                // 主色铺底：缩略图还没解码出来时，井里是一块从画面里取来的颜色，不是灰块。
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
                     .fill(tintColor.opacity(0.55))
 
                 if let thumbnail {
-                    Image(nsImage: thumbnail)
-                        .resizable()
-                        .interpolation(.high)
-                        .aspectRatio(contentMode: fillMode(well: well))
-                        .frame(width: well.width, height: well.height)
-                        .clipped()
+                    // [A-1] 比例接近 → cover 铺满；差太多 → 模糊底 + 完整前景。
+                    // 井永远被画面占满，内容一张不裁（2026-11-18 用户口径）。
+                    if useCover(well: well, image: thumbnail) {                        imageView(thumbnail, well: well, mode: .fill)
+                    } else {
+                        ZStack {
+                            imageView(thumbnail, well: well, mode: .fill)
+                                .scaleEffect(1.18)          // 放大一点，盖住 blur 的透明边缘
+                                .blur(radius: 18)
+                                .opacity(0.7)
+                                .saturation(0.9)
+                            imageView(thumbnail, well: well, mode: .fit)
+                                .padding(2)
+                                .shadow(color: .black.opacity(0.18), radius: 4, y: 1)
+                        }
+                    }
                 } else {
                     Image(systemName: "photo")
                         .font(.system(size: 18))
@@ -253,18 +266,25 @@ struct StationCard: View {
         }
     }
 
+    private func imageView(_ image: NSImage, well: CGSize, mode: ContentMode) -> some View {
+        Image(nsImage: image)
+            .resizable()
+            .interpolation(.high)
+            .aspectRatio(contentMode: mode)
+            .frame(width: well.width, height: well.height)
+            .clipped()
+    }
+
     private var tintColor: Color {
         if let thumbnailTint { return Color(nsColor: thumbnailTint) }
         return Color.primary.opacity(0.06)
     }
 
-    /// 图与井比例接近 → 填满（裁一点点，视觉更满）；差太多 → 完整放下（截图两侧不许被裁）。
-    private func fillMode(well: CGSize) -> ContentMode {
-        guard let thumbnail, thumbnail.size.height > 0, well.height > 0 else { return .fill }
-        let imageAspect = thumbnail.size.width / thumbnail.size.height
-        let wellAspect = well.width / well.height
-        let delta = abs(imageAspect - wellAspect) / wellAspect
-        return delta <= StationMetrics.contentFillTolerance ? .fill : .fit
+    /// 图与井比例是否足够接近（≤ 25%），接近就 cover。规则本体在 ContentWellFill（L1 可测）。
+    private func useCover(well: CGSize, image: NSImage) -> Bool {
+        guard image.size.height > 0, well.height > 0 else { return true }
+        return ContentWellFill.mode(imageAspect: image.size.width / image.size.height,
+                                    wellAspect: well.width / well.height) == .cover
     }
 
     private var textContent: some View {
@@ -343,37 +363,49 @@ struct StationCard: View {
     // MARK: - [A-3] 右上动作组件
 
     private var actionCluster: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: 2) {
             ForEach(headActions) { action in
                 Button { onAction(action.id) } label: {
-                    Text(displayIcon(for: action)).font(.system(size: StationMetrics.glyphSize))
+                    Text(displayIcon(for: action))
+                        .font(.system(size: StationMetrics.actionGlyphSize))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                        .frame(width: StationMetrics.actionChipSize,
+                               height: StationMetrics.actionChipSize)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .help(displayHelp(for: action))
             }
 
             if item.contents.count > 1 {
-                Button { onFlavor() } label: {
-                    Image(systemName: "square.on.square").font(.system(size: 12))
-                }
-                .buttonStyle(.plain)
-                .help("切换另一种表示")
+                chipButton(symbol: "square.on.square", help: "切换另一种表示") { onFlavor() }
             }
 
             if let predictedAction {
-                Button {
+                chipButton(symbol: "arrow.up.forward.app", help: "预测：\(predictedAction.label)") {
                     withAnimation(StationMetrics.hoverAnimation) { showPrediction.toggle() }
-                } label: {
-                    Image(systemName: "arrow.up.forward.app").font(.system(size: 12))
                 }
-                .buttonStyle(.plain)
-                .help("预测：\(predictedAction.label)")
             }
         }
-        .padding(.horizontal, 6)
-        .padding(.vertical, 3)
+        .padding(.horizontal, 4)
+        .padding(.vertical, 1)
         .background(.regularMaterial, in: Capsule())
         .overlay(Capsule().strokeBorder(.primary.opacity(0.08), lineWidth: 1))
+    }
+
+    /// 动作组件里的 SF 图标：外框 16、图标 14（用户 2026-11-18 口径：
+    /// 组件自身有 1pt 描边，所以图标取 14 才和 16 的源 App 图标视觉等重）。
+    private func chipButton(symbol: String, help: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(.system(size: StationMetrics.actionGlyphSize - 1, weight: .medium))
+                .frame(width: StationMetrics.actionChipSize,
+                       height: StationMetrics.actionChipSize)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help(help)
     }
 
     private func predictionFloat(_ action: ActionDefinition) -> some View {

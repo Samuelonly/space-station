@@ -28,7 +28,7 @@ enum SelfCheck {
     // MARK: - 汇总
 
     static func runAll() -> [Item] {
-        classification() + purify() + oneLevel() + thumbnail() + resolver()
+        classification() + purify() + oneLevel() + thumbnail() + resolver() + layout()
     }
 
     /// 命令行入口：打印 + 返回是否全绿。
@@ -134,6 +134,66 @@ enum SelfCheck {
             check("来源解析·失败回落一级名", info.name == "notinstalled", info.name),
             check("来源解析·失败无图标", info.icon == nil),
         ]
+    }
+
+    // MARK: - 布局几何（卡比例随边反转 + 内容井填充裁决）
+
+    /// 这两组规则一旦接反，用户看到的就是“手机截图在卡里只剩一条细缝”——
+    /// 肉眼能发现，但只有写成用例才不会在下次改比例时又接反。
+    private static func layout() -> [Item] {
+        let top = EdgePosition.top.cardSize
+        let bottom = EdgePosition.bottom.cardSize
+        let left = EdgePosition.left.cardSize
+        let right = EdgePosition.right.cardSize
+        var items: [Item] = []
+
+        // 顶/底 = 横排 → 4:3 横版；左/右 = 纵排 → 3:4 竖版。
+        items.append(check(
+            "卡比例·顶/底为 4:3 横版",
+            top.width > top.height && abs(top.width / top.height - 4.0 / 3.0) < 0.01
+                && bottom == top,
+            "\(Int(top.width))×\(Int(top.height))"
+        ))
+        items.append(check(
+            "卡比例·左/右为 3:4 竖版",
+            left.height > left.width && abs(left.width / left.height - 3.0 / 4.0) < 0.01
+                && right == left,
+            "\(Int(left.width))×\(Int(left.height))"
+        ))
+        items.append(check(
+            "卡比例·两侧互为转置（体积不变）",
+            abs(top.width - left.height) < 0.01 && abs(top.height - left.width) < 0.01,
+            "横 \(Int(top.width))×\(Int(top.height)) / 竖 \(Int(left.width))×\(Int(left.height))"
+        ))
+
+        // 内容井填充：手机竖图(9:19.5=0.46) 放进 4:3 横井(1.33) 必须走“模糊底+完整前景”，
+        // 不能 cover（会裁掉 2/3），也不能留灰条（就是用户截图里那个“使用率太低”）。
+        items.append(check(
+            "内容井·手机竖图放横井 → 模糊底+完整前景",
+            ContentWellFill.mode(imageAspect: 9.0 / 19.5, wellAspect: 4.0 / 3.0) == .backdropFit,
+            ContentWellFill.mode(imageAspect: 9.0 / 19.5, wellAspect: 4.0 / 3.0).rawValue
+        ))
+        items.append(check(
+            "内容井·Mac 截图(16:10)放竖井 → 模糊底+完整前景",
+            ContentWellFill.mode(imageAspect: 1.6, wellAspect: 0.75) == .backdropFit,
+            ContentWellFill.mode(imageAspect: 1.6, wellAspect: 0.75).rawValue
+        ))
+        items.append(check(
+            "内容井·比例接近 → cover 铺满",
+            ContentWellFill.mode(imageAspect: 1.4, wellAspect: 4.0 / 3.0) == .cover
+                && ContentWellFill.mode(imageAspect: 1.0, wellAspect: 0.95) == .cover,
+            "1.40 vs 1.33 / 1.00 vs 0.95"
+        ))
+
+        // 图标标尺：源 App 16、动作图标 14（外框 16，差 2 是给描边留的视觉补偿）。
+        items.append(check(
+            "图标标尺·源 16 / 动作 14",
+            StationMetrics.glyphSize == 16 && StationMetrics.actionGlyphSize == 14
+                && StationMetrics.actionChipSize == 16,
+            "\(Int(StationMetrics.glyphSize)) / \(Int(StationMetrics.actionGlyphSize))"
+        ))
+
+        return items
     }
 
     // MARK: - 工具

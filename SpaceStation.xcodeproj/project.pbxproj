@@ -60,6 +60,7 @@
 		69E7EEAEBA8427BF34A032AE /* GlassComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5DD495CCAC33F7180A8249A8 /* GlassComponents.swift */; };
 		7A360C764E938E5CF2B70EDB /* CaptureConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40E43E037F615742C51E99CF /* CaptureConfiguration.swift */; };
 		81C0F015695D0C2F5A03C68D /* StationMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0679DB2A88C9E8BAC94FACAE /* StationMetrics.swift */; };
+		839D38DD711D9382657ED55B /* ContentWellFill.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFCAF8FEE6D4C2D736D57D9A /* ContentWellFill.swift */; };
 		86805C1455D2197F019022B9 /* AnnotationModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 126713D10933506FD469B844 /* AnnotationModels.swift */; };
 		88A154515BEEA5EB4BE996C8 /* ScreenTranslateOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30F2A241725F0E1470DF89AC /* ScreenTranslateOverlayView.swift */; };
 		8C57540A69E2BBC04EADC301 /* OCRImagePrep.swift in Sources */ = {isa = PBXBuildFile; fileRef = 940996741C68445ACBE7A6FC /* OCRImagePrep.swift */; };
@@ -213,6 +214,7 @@
 		D5493BEA568CAFCD6827AF6B /* DiagnosticsPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiagnosticsPanel.swift; sourceTree = "<group>"; };
 		D5A95F3170048A8C5E9C3789 /* RegionSelectorController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegionSelectorController.swift; sourceTree = "<group>"; };
 		D85E3B05ED80CD97DC96CAEA /* AppTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTheme.swift; sourceTree = "<group>"; };
+		DFCAF8FEE6D4C2D736D57D9A /* ContentWellFill.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentWellFill.swift; sourceTree = "<group>"; };
 		E2044CA4D283EAF4DB51F539 /* OCRViewPrimitives.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OCRViewPrimitives.swift; sourceTree = "<group>"; };
 		E4D8EA981977613307928EB3 /* CaptureShortcuts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureShortcuts.swift; sourceTree = "<group>"; };
 		E5CAA11A1591849AF2186039 /* SnipModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SnipModels.swift; sourceTree = "<group>"; };
@@ -578,6 +580,7 @@
 		FFD49D343638A7B07E5B614F /* Design */ = {
 			isa = PBXGroup;
 			children = (
+				DFCAF8FEE6D4C2D736D57D9A /* ContentWellFill.swift */,
 				8BFF6244C064FAC1965D70C7 /* EdgePosition.swift */,
 				0679DB2A88C9E8BAC94FACAE /* StationMetrics.swift */,
 			);
@@ -678,6 +681,7 @@
 				2BFA6039F9922D40799C6C82 /* Clipboard.swift in Sources */,
 				FEC3108B71DF5677C6E18270 /* ClipboardUndo.swift in Sources */,
 				B8BF728AA3BF3CA1F90EA822 /* CloudTranslationProviders.swift in Sources */,
+				839D38DD711D9382657ED55B /* ContentWellFill.swift in Sources */,
 				1BFCB185E50742252D33A3AE /* CustomOCRProvider.swift in Sources */,
 				E9360FB7905D65A4916F812C /* Diagnostics.swift in Sources */,
 				2BD63CE110AC4411692830B3 /* DiagnosticsPanel.swift in Sources */,

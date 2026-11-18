@@ -15,9 +15,9 @@ enum EdgePosition: String, CaseIterable, Sendable {
         }
     }
 
-    /// Portrait card on top/bottom, landscape card on left/right.
+    /// 卡的比例**随边反转**：顶/底（横排）→ 4:3 横版；左/右（纵排）→ 3:4 竖版。
     var cardSize: CGSize {
-        scrollsHorizontally ? StationMetrics.portraitCard : StationMetrics.landscapeCard
+        scrollsHorizontally ? StationMetrics.horizontalCard : StationMetrics.verticalCard
     }
 
     /// Which screen edge the rail hugs.
