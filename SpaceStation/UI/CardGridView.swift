@@ -42,7 +42,23 @@ struct CardGridView: View {
     var body: some View {
         ContainerGlass(cornerRadius: StationMetrics.containerRadius) {
             VStack(spacing: 4) {
-                NavBar(state: stationState)
+                HStack(spacing: 4) {
+                    NavBar(state: stationState)
+                    Spacer(minLength: 0)
+                    // [A-5] 退出按钮：常驻菜单栏的 agent 应用没有 Dock 图标、
+                    // 也没有主菜单，开发期必须有一个“看得见”的出口。
+                    Button {
+                        NSApplication.shared.terminate(nil)
+                    } label: {
+                        Image(systemName: "power")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(.secondary)
+                            .padding(3)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .help("退出 Space Station（⌘Q）")
+                }
                 FilterBar(state: stationState, items: tabItems)
                 Group {
                     if tabItems.isEmpty { cabinEmpty }        // this cabin has no cards yet

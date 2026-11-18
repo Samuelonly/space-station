@@ -202,6 +202,18 @@ final class ThumbnailCache: @unchecked Sendable {
         let signpost = Diagnostics.signposter.beginInterval("thumbnail.downsample")
         let image = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary)
         Diagnostics.signposter.endInterval("thumbnail.downsample", signpost)
+
+        // L2 契约断言（HTML §22.11）：⑥ 图像管线**只许缩，不许放**。
+        // 放大过的缩略图在卡上会糊成一片，而且白占内存——这是曾经真出现过的问题。
+        #if DEBUG
+        if let image, let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
+           let srcWidth = properties[kCGImagePropertyPixelWidth] as? Int, srcWidth > 0 {
+            assert(
+                image.width <= max(maxPixel, srcWidth),
+                "downsample 把图放大了：\(image.width) > max(\(maxPixel), \(srcWidth))"
+            )
+        }
+        #endif
         return image
     }
 

@@ -31,10 +31,13 @@ final class DiagnosticsWindowController {
 struct DiagnosticsPanel: View {
     @State private var snapshot = Diagnostics.shared.snapshot()
     @State private var checks: [Diagnostics.Check] = []
+    @State private var logicChecks: [SelfCheck.Item] = []
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             metrics
+            Divider()
+            logicList
             Divider()
             checksList
             Spacer(minLength: 0)
@@ -44,9 +47,33 @@ struct DiagnosticsPanel: View {
         .frame(minWidth: 440, minHeight: 540, alignment: .topLeading)
         .task {
             checks = await Diagnostics.shared.runSelfChecks()
+            logicChecks = SelfCheck.runAll()
             while !Task.isCancelled {
                 snapshot = Diagnostics.shared.snapshot()
                 try? await Task.sleep(for: .seconds(1))
+            }
+        }
+    }
+
+    /// L1 纯函数自测（§22.11）：改完逻辑先看这里，红了就是真红线。
+    private var logicList: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 6) {
+                Text("逻辑自检（L1）").font(.system(size: 11, weight: .semibold))
+                let failed = logicChecks.filter { !$0.ok }.count
+                Text(failed == 0 ? "\(logicChecks.count)/\(logicChecks.count) 通过" : "\(failed) 项失败")
+                    .font(.system(size: 9))
+                    .foregroundStyle(failed == 0 ? Color.green : Color.red)
+            }
+            ForEach(logicChecks.filter { !$0.ok }) { item in
+                HStack(alignment: .top, spacing: 6) {
+                    Image(systemName: "xmark.octagon.fill")
+                        .foregroundStyle(Color.red)
+                        .font(.system(size: 9))
+                    Text("\(item.name) — \(item.detail)")
+                        .font(.system(size: 9))
+                        .foregroundStyle(.secondary)
+                }
             }
         }
     }

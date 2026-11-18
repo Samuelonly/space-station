@@ -35,6 +35,14 @@ final class KeyboardRouter {
 
         let aux = AuxPanel.shared
         let auxOpen = aux.isOpen
+
+        // ⌘Q 退出：本应用是菜单栏 agent，没有主菜单，系统默认的 ⌘Q 菜单项不存在，
+        // 面板开着时按 ⌘Q 会毫无反应。放在所有 guard 之前，只要我们在收键就生效。
+        if event.modifierFlags.contains(.command),
+           event.charactersIgnoringModifiers?.lowercased() == "q" {
+            NSApplication.shared.terminate(nil)
+            return nil
+        }
         // M5: once QuickLook is open the rail panel may have resigned key and
         // closed, so hotkeys must stay live while any aux surface is presented.
         guard isPanelOpen() || auxOpen else { return event }

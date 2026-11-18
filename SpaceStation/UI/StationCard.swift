@@ -264,7 +264,7 @@ struct StationCard: View {
         let imageAspect = thumbnail.size.width / thumbnail.size.height
         let wellAspect = well.width / well.height
         let delta = abs(imageAspect - wellAspect) / wellAspect
-        return delta <= StationMetrics.imageFillTolerance ? .fill : .fit
+        return delta <= StationMetrics.contentFillTolerance ? .fill : .fit
     }
 
     private var textContent: some View {
@@ -276,9 +276,9 @@ struct StationCard: View {
     }
 
     private var bodyText: String {
-        if kind == .url, let url = ClipKind.firstURL(in: item.text ?? "") {
+        if kind == .url, let host = ClipKind.oneLevelDisplay(item.text ?? "") {
             // [A-3] 网址只留一级（主机名）。完整 URL 走 QuickLook / 复制，不在卡上铺三行。
-            if let host = url.host, !host.isEmpty { return host }
+            return host
         }
         return item.title.isEmpty ? "（\(kind.cnLabel)）" : item.title
     }

@@ -82,11 +82,12 @@ enum StationMetrics {
     static let portraitCard = CGSize(width: 132, height: 198)
     static let landscapeCard = CGSize(width: 198, height: 132)
 
-    /// [A-1] 图片「井」的比例 = **4:5**（去掉头部 18pt、Info 行与内边距后的实际可用区）。
-    /// 依据：竖卡内容区 ≈ 116×143 ≈ 0.81；4:5 是社交与手机截图的主流竖比，
-    /// 也是 Copy'em / 相册网格的容器惯例——缩略图按这个比例取景，四边留白最均衡。
-    static let imageWellAspect: CGFloat = 4.0 / 5.0
-    /// 图与井比例差在 ±12% 内用“填满”（裁一点点、视觉更满），超出则“完整放下”，
+    /// [A-1] **内容井**的比例 = **4:5**（去掉头部 18pt、Info 行与内边距后的实际可用区）。
+    /// 叫“内容井”不叫“图片井”：井里装的不只是图——文件卡、代码卡、链接卡用的是同一个容器，
+    /// 只是填充物不同（图片铺满、其余按内容排版）。比例依据：竖卡内容区 ≈ 116×143 ≈ 0.81；
+    /// 4:5 是社交与手机截图的主流竖比，也是 Copy'em / 相册网格的容器惯例。
+    static let contentWellAspect: CGFloat = 4.0 / 5.0
+    /// 内容与井比例差在 ±12% 内用“填满”（裁一点点、视觉更满），超出则“完整放下”，
     /// 保证 16:10 的 Mac 截图不会被裁掉两侧。
-    static let imageFillTolerance: CGFloat = 0.12
+    static let contentFillTolerance: CGFloat = 0.12
 }

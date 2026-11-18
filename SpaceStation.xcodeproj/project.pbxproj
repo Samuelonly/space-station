@@ -71,6 +71,7 @@
 		969C89F3DB1ADEA37DFC86E7 /* FilterBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75A40EB04706751285238C43 /* FilterBar.swift */; };
 		97D3B794B74115A9E254D2F7 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D5A4FCE2C59E6C3742A4F65 /* SettingsView.swift */; };
 		9F0CEF2BE98789B870942C2B /* WindowHitTester.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5765BD524285EEC735B85836 /* WindowHitTester.swift */; };
+		A75BC08E1C4A160246D315F3 /* SelfCheck.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F588C82E9A87058DC501584 /* SelfCheck.swift */; };
 		AA77E1DFCBCA687D08F89CE8 /* ScrollCaptureEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 834044FCDD15DD4170826305 /* ScrollCaptureEngine.swift */; };
 		ADC3E289DD4B8819ED20CB53 /* ThumbnailCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96C182FAFB8CDC27834F9906 /* ThumbnailCache.swift */; };
 		B578028C81DCD3AC69F900E7 /* OCRService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C8B1F81BBD265156CCEF5DF /* OCRService.swift */; };
@@ -130,6 +131,7 @@
 		20369073DAD32B5FFB63D9E4 /* L10n.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = L10n.swift; sourceTree = "<group>"; };
 		21D5EF79ACA172C3998AC2D8 /* HotkeyStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyStore.swift; sourceTree = "<group>"; };
 		281A59C8BEAD8BD1A5D999D0 /* ResultChromeControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResultChromeControls.swift; sourceTree = "<group>"; };
+		2F588C82E9A87058DC501584 /* SelfCheck.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelfCheck.swift; sourceTree = "<group>"; };
 		2FE5C7131E1B07EE3FE8A31B /* YoudaoOCRProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YoudaoOCRProvider.swift; sourceTree = "<group>"; };
 		30ECF7B01583E1D8605F290B /* AnnotateOptionsBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnotateOptionsBar.swift; sourceTree = "<group>"; };
 		30F2A241725F0E1470DF89AC /* ScreenTranslateOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenTranslateOverlayView.swift; sourceTree = "<group>"; };
@@ -491,6 +493,7 @@
 			children = (
 				B02215FE5FADECE382E9B035 /* Clipboard.swift */,
 				7BE5EF2026182C63EEDF61A1 /* Diagnostics.swift */,
+				2F588C82E9A87058DC501584 /* SelfCheck.swift */,
 				874BDA5E171A08EF8F9F6D56 /* Sorter.swift */,
 				B1F5D2EE00161116D2A2A52B /* SourceAppResolver.swift */,
 				5FFF6A462C690A79D3A0EA2B /* Storage.swift */,
@@ -722,6 +725,7 @@
 				1EA5DDAD4CB7FC9FB155F87A /* ScreenTranslateResultView.swift in Sources */,
 				24A60CF4D2D66D71B14B660C /* ScrollCaptureControlPanel.swift in Sources */,
 				AA77E1DFCBCA687D08F89CE8 /* ScrollCaptureEngine.swift in Sources */,
+				A75BC08E1C4A160246D315F3 /* SelfCheck.swift in Sources */,
 				E29561579C0F1FF185B4F7C6 /* ServiceProtocols.swift in Sources */,
 				97D3B794B74115A9E254D2F7 /* SettingsView.swift in Sources */,
 				F089648A142C09C20FA6FEC8 /* ShortcutDisplay.swift in Sources */,

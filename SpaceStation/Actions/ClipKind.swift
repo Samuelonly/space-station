@@ -58,6 +58,16 @@ enum ClipKind: String, Sendable, CaseIterable {
         return detector.firstMatch(in: text, range: range)?.url
     }
 
+    /// [A-3] 卡片上只显示**一级**：网址取 host（`https://DJGoL.subxly.cfd:8443/api/v1/...` → `DJGoL.subxly.cfd`）。
+    ///
+    /// 为什么不做面包屑：用户自己记得刚才是从哪复制的，完整路径对他没信息量，
+    /// 只会把卡片撑成三行乱麻；要看全文就去 QuickLook / 直接复制。
+    /// 提成纯函数是为了进 L1 检查点（§22.11）。
+    static func oneLevelDisplay(_ text: String) -> String? {
+        guard let url = firstURL(in: text), let host = url.host, !host.isEmpty else { return nil }
+        return host
+    }
+
     private static func looksLikeCode(_ text: String) -> Bool {
         let markers = ["func ", "let ", "const ", "class ", "import ", "def ", "function ", "#include", "struct ", "var ", "return ", "public ", "interface ", "import \"", "package "]
         let sample = text.prefix(600)

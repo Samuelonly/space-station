@@ -101,6 +101,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             diagnostics.target = self
             menu.addItem(diagnostics)
             #endif
+            menu.addItem(NSMenuItem.separator())
+            // 常驻 agent 应用没有主菜单，系统 ⌘Q 不会自己出现，必须自己给出口。
+            let quit = NSMenuItem(title: "退出 Space Station", action: #selector(quitApp), keyEquivalent: "q")
+            quit.target = self
+            menu.addItem(quit)
             // 直接弹出，避免给 button 挂 menu 后 performClick 再次触发本方法（递归）。
             if let button = statusItem.button {
                 menu.popUp(positioning: nil, at: NSPoint(x: 0, y: button.bounds.height + 4), in: button)
@@ -126,6 +131,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func openSettings() {
         SettingsWindowController.shared.show(state: stationState)
+    }
+
+    @objc private func quitApp() {
+        NSApp.terminate(nil)
     }
 
     #if DEBUG
