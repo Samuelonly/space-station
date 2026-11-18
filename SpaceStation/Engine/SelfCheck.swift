@@ -148,6 +148,17 @@ enum SelfCheck {
         let right = EdgePosition.right.cardSize
         var items: [Item] = []
 
+        // **开发基准轴**：验收只在一条边上做（用户 2026-11-18 定案）。
+        // 四条边共用一套卡，但两边同时改 = 每轮开两次盲盒；出问题时分不清
+        // 是改动错了，还是这条边本来不适用。所以基准必须是横向顶部，
+        // 纵向的一切尺寸都从它推导，不许在纵向上单独调参。
+        let baseline = EdgePosition.developmentBaseline
+        items.append(check(
+            "开发基准轴 = 顶部横向（纵向为派生）",
+            baseline == .top && baseline.scrollsHorizontally,
+            "\(baseline.cnLabel) · \(baseline.scrollsHorizontally ? "横向" : "纵向")"
+        ))
+
         // 顶/底 = 横排 → 4:3 横版；左/右 = 纵排 → 3:4 竖版。
         items.append(check(
             "卡比例·顶/底为 4:3 横版",
@@ -173,7 +184,8 @@ enum SelfCheck {
         // **一屏 5 张**是产品硬指标，不是形容词。
         // 面板尺寸由卡尺寸反推，所以这里直接量“面板里究竟塞得下几张”——
         // 谁把卡改大、间距改宽，这条当场变红。
-        for (edge, name) in [(EdgePosition.top, "顶/底"), (.left, "左/右")] {
+        // 横向是主判据；纵向只验「派生出来还能不能装下 5 张」。
+        for (edge, name) in [(EdgePosition.top, "基准轴·顶/底"), (.left, "派生·左/右")] {
             let capacity = edge.firstScreenCapacity
             let panel = edge.panelSize
             items.append(check(

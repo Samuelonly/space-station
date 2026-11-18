@@ -7,6 +7,21 @@ import SwiftUI
 enum EdgePosition: String, CaseIterable, Sendable {
     case top, bottom, left, right
 
+    /// **开发基准轴 = 顶部横向**（2026-11-18 用户定案）。
+    ///
+    /// 四条边共用一套 `StationCard`，但**验收只在一条边上做**。理由很实际：
+    /// 每轮都要「横的看一眼、竖的看一眼」，等于每轮开两次盲盒——
+    /// 改一处布局，两边同时变，出问题时根本分不清是改动错了还是这条边不适用。
+    ///
+    /// 所以纪律是：
+    /// - **基准期**：只改横向、只拍横向、只按横向判「成不成立」；
+    /// - **派生期**：横向定稿后，纵向只允许改「由宽度推导出来的那几个数」
+    ///   （卡宽、侧栏宽、面板宽），不许在纵向单独调字号/间距/控件形态。
+    ///   一旦纵向需要单独调，说明基准里有个假设没被写出来，回去改基准。
+    ///
+    /// 这条不是文档里的口号，`--snapshot` 不带边时就拍它，L1 也断言它。
+    static let developmentBaseline: EdgePosition = .top
+
     /// top/bottom → horizontal rail; left/right → vertical rail.
     var scrollsHorizontally: Bool {
         switch self {
@@ -49,8 +64,10 @@ enum EdgePosition: String, CaseIterable, Sendable {
 
     static var saved: EdgePosition {
         get {
+            // 未存过 → 落在开发基准轴上（顶部）。首次安装的用户也自动在状态栏下方，
+            // 先适应产品，而不是被扔到侧边一条谁也不知道的窄缝里。
             guard let raw = ud.string(forKey: storageKey),
-                  let edge = EdgePosition(rawValue: raw) else { return .top }
+                  let edge = EdgePosition(rawValue: raw) else { return developmentBaseline }
             return edge
         }
         set { ud.set(newValue.rawValue, forKey: storageKey) }

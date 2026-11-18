@@ -60,8 +60,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let args = ProcessInfo.processInfo.arguments
         if let idx = args.firstIndex(of: "--snapshot"), idx + 1 < args.count {
             let path = args[idx + 1]
+            // 第三个参数可选，用来指定看哪条边；**不写就是开发基准轴（横向顶部）**。
+            //
+            // 上一轮为了看左侧，命令行里显式传了 dockEdge，于是“这次该拍哪边”
+            // 变成每轮开工前的第一个选择题，而且拍错了才发现——这就是盲盒。
+            // 现在默认横向，纵向只有显式点名才拍。
+            let explicit = (idx + 2 < args.count) ? EdgePosition(rawValue: args[idx + 2]) : nil
+            let target = explicit ?? EdgePosition.developmentBaseline
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak self] in
                 guard let self else { return }
+                // open() 会以 stationState.edge 为准重算尺寸，所以在这里改就够；
+                // 走内存状态而不是 UserDefaults，快照**不会**把用户设置改脏。
+                self.stationState.edge = target
                 self.panel.open()
                 // 等缩略图解码 + SwiftUI 首帧布局落地。
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) {
