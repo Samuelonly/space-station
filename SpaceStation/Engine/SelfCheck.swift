@@ -167,23 +167,31 @@ enum SelfCheck {
             "横 \(Int(top.width))×\(Int(top.height)) / 竖 \(Int(left.width))×\(Int(left.height))"
         ))
 
-        // 内容井填充：手机竖图(9:19.5=0.46) 放进 4:3 横井(1.33) 必须走“模糊底+完整前景”，
-        // 不能 cover（会裁掉 2/3），也不能留灰条（就是用户截图里那个“使用率太低”）。
+        // 内容井**一律 cover**（Instagram / 微博逻辑）：不管图多窄多宽，
+        // 渲染尺寸两个方向都必须不小于井 = 井里没有留白。
+        let well = CGSize(width: 140, height: 150)
+        let phone = ContentWellFill.renderedSize(image: CGSize(width: 900, height: 1950), well: well)
         items.append(check(
-            "内容井·手机竖图放横井 → 模糊底+完整前景",
-            ContentWellFill.mode(imageAspect: 9.0 / 19.5, wellAspect: 4.0 / 3.0) == .backdropFit,
-            ContentWellFill.mode(imageAspect: 9.0 / 19.5, wellAspect: 4.0 / 3.0).rawValue
+            "内容井·手机竖图(9:19.5)也铺满",
+            ContentWellFill.fills(phone, well: well),
+            "\(Int(phone.width))×\(Int(phone.height)) ← 900×1950"
+        ))
+        let mac = ContentWellFill.renderedSize(image: CGSize(width: 1600, height: 1000), well: well)
+        items.append(check(
+            "内容井·Mac 截图(16:10)也铺满",
+            ContentWellFill.fills(mac, well: well),
+            "\(Int(mac.width))×\(Int(mac.height)) ← 1600×1000"
+        ))
+        let wide = ContentWellFill.renderedSize(image: CGSize(width: 3000, height: 1000), well: well)
+        items.append(check(
+            "内容井·超宽图(3:1)也铺满",
+            ContentWellFill.fills(wide, well: well),
+            "\(Int(wide.width))×\(Int(wide.height)) ← 3000×1000"
         ))
         items.append(check(
-            "内容井·Mac 截图(16:10)放竖井 → 模糊底+完整前景",
-            ContentWellFill.mode(imageAspect: 1.6, wellAspect: 0.75) == .backdropFit,
-            ContentWellFill.mode(imageAspect: 1.6, wellAspect: 0.75).rawValue
-        ))
-        items.append(check(
-            "内容井·比例接近 → cover 铺满",
-            ContentWellFill.mode(imageAspect: 1.4, wellAspect: 4.0 / 3.0) == .cover
-                && ContentWellFill.mode(imageAspect: 1.0, wellAspect: 0.95) == .cover,
-            "1.40 vs 1.33 / 1.00 vs 0.95"
+            "内容井·填充方式固定 cover（禁止回退 fit）",
+            ContentWellFill.contentMode == .fill,
+            "\(ContentWellFill.contentMode)"
         ))
 
         // 图标标尺：源 App 16、动作图标 14（外框 16，差 2 是给描边留的视觉补偿）。

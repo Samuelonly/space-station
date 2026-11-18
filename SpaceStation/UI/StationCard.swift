@@ -32,6 +32,10 @@ struct StationCard: View {
 
     private var effectiveSelected: Bool { isSelected || isHovering }
     private var isLandscape: Bool { size.width > size.height }
+    /// 圆角随卡尺寸缩放（窄卡不许圆成胶囊）。
+    private var radius: CGFloat { StationMetrics.cardRadius(for: size) }
+    /// 内容井的圆角永远比卡小一圈。
+    private var wellRadius: CGFloat { StationMetrics.imageRadius(for: size) }
 
     private var kind: ClipKind {
         ClipKind.derive(types: item.contents.map(\.type), text: item.text)
@@ -49,7 +53,6 @@ struct StationCard: View {
     var body: some View {
         ZStack(alignment: .topLeading) {
             background
-            if effectiveSelected { selectionFill }
 
             VStack(alignment: .leading, spacing: 6) {
                 header
@@ -59,9 +62,7 @@ struct StationCard: View {
             }
             .padding(8)
             .frame(width: size.width, height: size.height, alignment: .topLeading)
-            .clipShape(RoundedRectangle(cornerRadius: StationMetrics.imageRadius, style: .continuous))
-            .opacity(effectiveSelected ? 1 : 0.78)
-            .animation(.easeInOut(duration: 0.15), value: effectiveSelected)
+            .clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
 
             // [A-3] 动作组件：右上角、hover 才显形（§17.4），不再占底部一行。
             actionCluster
@@ -71,6 +72,7 @@ struct StationCard: View {
                 .allowsHitTesting(isHovering)
                 .animation(StationMetrics.hoverAnimation, value: isHovering)
 
+            // 选中只换“边”，不盖颜色（2026-11-18 用户口径）。
             if effectiveSelected { selectionBorder }
         }
         .overlay(alignment: .bottomLeading) {
@@ -132,13 +134,15 @@ struct StationCard: View {
     // MARK: - 背景 / 选中 / 光效（§21.6 玻璃 + 描边，不做几何缩放）
 
     private var background: some View {
-        RoundedRectangle(cornerRadius: StationMetrics.cardRadius, style: .continuous)
-            .fill(.ultraThinMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: StationMetrics.cardRadius, style: .continuous))
+        RoundedRectangle(cornerRadius: radius, style: .continuous)
+            // **卡比壳更实**：轨道壳是 0.55 的薄胶，卡用 regularMaterial 不透明地压在上面，
+            // 这样卡是“浮在桌面上的实物”，而不是“叠了第二层玻璃的灰雾”。
+            .fill(.regularMaterial)
+            .clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
             .borderedBackground(
                 .primary.opacity(0.1),
                 lineWidth: StationMetrics.cardBgStroke,
-                shape: RoundedRectangle(cornerRadius: StationMetrics.cardRadius, style: .continuous)
+                shape: RoundedRectangle(cornerRadius: radius, style: .continuous)
             )
             .padding(-StationMetrics.innerPadding)
             // [A-3] DockDoor 式观感：贴外柔光 + 顶部受光边，只改光不改几何。
@@ -148,7 +152,7 @@ struct StationCard: View {
                 y: isHovering ? 3 : 0
             )
             .overlay {
-                RoundedRectangle(cornerRadius: StationMetrics.cardRadius, style: .continuous)
+                RoundedRectangle(cornerRadius: radius, style: .continuous)
                     .strokeBorder(
                         LinearGradient(
                             colors: [.white.opacity(isHovering ? StationMetrics.hoverRimOpacity : 0),
@@ -163,16 +167,13 @@ struct StationCard: View {
             }
     }
 
-    private var selectionFill: some View {
-        RoundedRectangle(cornerRadius: StationMetrics.cardRadius, style: .continuous)
-            .fill(Color.accentColor.opacity(StationMetrics.selectionFillOpacity))
-            .padding(-StationMetrics.innerPadding)
-    }
-
+    /// 选中态 = **一圈算出来的蓝边**（画在卡自己的轮廓上，不再向内垫 6pt 飘在缝里）。
+    /// 以前是“整卡盖 40% 蓝”＋“外圈描边”，等于给内容蒙了层蓝纱，越选越看不清。
     private var selectionBorder: some View {
-        RoundedRectangle(cornerRadius: StationMetrics.cardRadius, style: .continuous)
+        RoundedRectangle(cornerRadius: radius, style: .continuous)
             .strokeBorder(Color.accentColor, lineWidth: StationMetrics.selectionStrokeWidth)
-            .padding(-StationMetrics.innerPadding)
+            .shadow(color: Color.accentColor.opacity(0.35),
+                    radius: StationMetrics.selectionGlowRadius)
             .allowsHitTesting(false)
     }
 
@@ -232,25 +233,19 @@ struct StationCard: View {
             let well = geo.size
             ZStack {
                 // 主色铺底：缩略图还没解码出来时，井里是一块从画面里取来的颜色，不是灰块。
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                RoundedRectangle(cornerRadius: wellRadius, style: .continuous)
                     .fill(tintColor.opacity(0.55))
 
                 if let thumbnail {
-                    // [A-1] 比例接近 → cover 铺满；差太多 → 模糊底 + 完整前景。
-                    // 井永远被画面占满，内容一张不裁（2026-11-18 用户口径）。
-                    if useCover(well: well, image: thumbnail) {                        imageView(thumbnail, well: well, mode: .fill)
-                    } else {
-                        ZStack {
-                            imageView(thumbnail, well: well, mode: .fill)
-                                .scaleEffect(1.18)          // 放大一点，盖住 blur 的透明边缘
-                                .blur(radius: 18)
-                                .opacity(0.7)
-                                .saturation(0.9)
-                            imageView(thumbnail, well: well, mode: .fit)
-                                .padding(2)
-                                .shadow(color: .black.opacity(0.18), radius: 4, y: 1)
-                        }
-                    }
+                    // **一律 cover（Instagram / 微博逻辑，2026-11-18）**：每个井形状一致，
+                    // 图片从中心铺满。宁可裁掉边角，也不许出现留白——用户要的是
+                    // “一眼看清这是什么”，不是“完整地看见整张截图”。完整版走 QuickLook。
+                    Image(nsImage: thumbnail)
+                        .resizable()
+                        .interpolation(.high)
+                        .aspectRatio(contentMode: ContentWellFill.contentMode)
+                        .frame(width: well.width, height: well.height)
+                        .clipped()
                 } else {
                     Image(systemName: "photo")
                         .font(.system(size: 18))
@@ -258,33 +253,17 @@ struct StationCard: View {
                 }
             }
             .frame(width: well.width, height: well.height)
-            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: wellRadius, style: .continuous))
             .overlay {
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                RoundedRectangle(cornerRadius: wellRadius, style: .continuous)
                     .strokeBorder(.primary.opacity(0.08), lineWidth: 1)
             }
         }
     }
 
-    private func imageView(_ image: NSImage, well: CGSize, mode: ContentMode) -> some View {
-        Image(nsImage: image)
-            .resizable()
-            .interpolation(.high)
-            .aspectRatio(contentMode: mode)
-            .frame(width: well.width, height: well.height)
-            .clipped()
-    }
-
     private var tintColor: Color {
         if let thumbnailTint { return Color(nsColor: thumbnailTint) }
         return Color.primary.opacity(0.06)
-    }
-
-    /// 图与井比例是否足够接近（≤ 25%），接近就 cover。规则本体在 ContentWellFill（L1 可测）。
-    private func useCover(well: CGSize, image: NSImage) -> Bool {
-        guard image.size.height > 0, well.height > 0 else { return true }
-        return ContentWellFill.mode(imageAspect: image.size.width / image.size.height,
-                                    wellAspect: well.width / well.height) == .cover
     }
 
     private var textContent: some View {

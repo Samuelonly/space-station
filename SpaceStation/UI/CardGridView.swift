@@ -40,26 +40,24 @@ struct CardGridView: View {
     private var items: [HistoryItem] { stationState.visibleItems(from: allItems) }
 
     var body: some View {
-        ContainerGlass(cornerRadius: StationMetrics.containerRadius) {
+        // 外框圆角跟着**窗口宽度**算：纵向轨道只有 ~208 宽，死写 34 会显得过圆。
+        ContainerGlass(cornerRadius: StationMetrics.containerRadius(for: edge.panelSize.width)) {
             VStack(spacing: 4) {
-                HStack(spacing: 4) {
-                    NavBar(state: stationState)
-                    Spacer(minLength: 0)
-                    // [A-5] 退出按钮：常驻菜单栏的 agent 应用没有 Dock 图标、
-                    // 也没有主菜单，开发期必须有一个“看得见”的出口。
-                    Button {
-                        NSApplication.shared.terminate(nil)
-                    } label: {
-                        Image(systemName: "power")
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(.secondary)
-                            .padding(3)
-                            .contentShape(Rectangle())
+                if edge.scrollsHorizontally {
+                    // 顶/底：一行三 tab，电源在右端。
+                    HStack(spacing: 4) {
+                        NavBar(state: stationState, axis: .horizontal)
+                        Spacer(minLength: 0)
+                        powerButton
                     }
-                    .buttonStyle(.plain)
-                    .help("退出 Space Station（⌘Q）")
+                } else {
+                    // 左/右：站体太窄，横排会把 Clip / Favorite 挤断词 → 单列侧栏。
+                    NavBar(state: stationState, axis: .vertical)
                 }
-                FilterBar(state: stationState, items: tabItems)
+                HStack(spacing: 6) {
+                    FilterBar(state: stationState, items: tabItems)
+                    if !edge.scrollsHorizontally { powerButton }
+                }
                 Group {
                     if tabItems.isEmpty { cabinEmpty }        // this cabin has no cards yet
                     else if items.isEmpty { filteredEmpty }   // filter matched nothing
@@ -108,6 +106,22 @@ struct CardGridView: View {
     private var feedbackText: String? {
         if let actionResult { return "\(actionResult.title) · \(actionResult.detail)" }
         return stationState.notice
+    }
+
+    /// [A-5] 退出按钮：常驻菜单栏的 agent 应用没有 Dock 图标、也没有主菜单，
+    /// 必须有一个“看得见”的出口（横向轨道放右上，纵向轨道放筛选行右端）。
+    private var powerButton: some View {
+        Button {
+            NSApplication.shared.terminate(nil)
+        } label: {
+            Image(systemName: "power")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(.secondary)
+                .padding(3)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help("退出 Space Station（⌘Q）")
     }
 
     @ViewBuilder

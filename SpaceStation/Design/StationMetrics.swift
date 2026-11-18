@@ -6,10 +6,26 @@ import SwiftUI
 /// pipelines are intentionally dropped (HTML §21.6.2 / §21.6.5).
 enum StationMetrics {
     // MARK: - Radii
-    static let innerPadding: CGFloat = 6          // CardRadius.innerPadding
-    static let cardRadius: CGFloat = 24.2         // 20 + 6×0.7
-    static let imageRadius: CGFloat = 18.2        // card − 6
+    static let innerPadding: CGFloat = 6
+    static let imageRadiusBase: CGFloat = 18.2
     static let containerRadius: CGFloat = 34      // 20 + 20×0.7
+
+    /// 卡圆角**随短边缩放**（2026-11-18 用户口径：窄卡被拉得像胶囊）。
+    /// 死写一个数会出现“156 宽的卡圆得像药丸，208 宽的反而不够圆”。
+    static func cardRadius(for size: CGSize) -> CGFloat {
+        min(24.2, min(size.width, size.height) * 0.135)
+    }
+
+    /// 内容井的圆角永远比卡小一圈，视觉上才是“卡里嵌了一层”。
+    static func imageRadius(for size: CGSize) -> CGFloat {
+        max(10, cardRadius(for: size) - 5)
+    }
+
+    /// 外框（轨道壳）圆角：跟着**宽度**走，窄轨道不会因为一个死数显成橄榄形。
+    static func containerRadius(for width: CGFloat) -> CGFloat {
+        guard width > 0 else { return containerRadius }
+        return min(containerRadius, width * 0.155)
+    }
 
     // MARK: - Spacing (scaled for our panel;
     //         HTML §21.6.4 leaves spacing/inset to us)
@@ -17,10 +33,14 @@ enum StationMetrics {
     static let inset: CGFloat = 12
     static let dockStyleOuter: CGFloat = 2
 
-    // MARK: - Glass (consts.swift:197-207 + BlurView.swift:165-173)
-    static let glassOpacity: CGFloat = 0.95       // dockGlassOpacity
-    static let tintOpacity: CGFloat = 0.18        // dockBackgroundTintOpacity
-    static let borderOpacity: CGFloat = 0.15      // dockBackgroundBorderOpacity
+    // MARK: - Glass
+    /// **层级反转（2026-11-18 修正）**：原来轨道壳 0.95、卡片又叠一层 0.78 透明度，
+    /// 结果是“壳太实、卡太淡、整体发灰”。正确的关系是：
+    ///  轨道壳 = 几乎没有（只要一层薄胶 + 一条亮边，让桌面透上来）
+    ///  卡片   = 比壳更实（`.regularMaterial`，不透明度 1），这样卡是浮在桌面上的实物
+    static let glassOpacity: CGFloat = 0.55       // 轨道壳的材质不透明度（原 0.95）
+    static let tintOpacity: CGFloat = 0.10        // 轨道壳的染色（原 0.18）
+    static let borderOpacity: CGFloat = 0.24      // 轨道壳亮边（原 0.15，加深让轮廓清晰）
     static let borderWidth: CGFloat = 1           // dockBackgroundBorderWidth
 
     // MARK: - Rim-light stroke (dockStyle.swift:112-125)
@@ -41,8 +61,13 @@ enum StationMetrics {
     }
 
     // MARK: - Selection / hover (WindowPreview.swift:847-879, :912-925)
-    static let selectionFillOpacity: CGFloat = 0.4   // accent.opacity(0.4)
-    static let selectionStrokeWidth: CGFloat = 2.5   // strokeBorder 2.5
+    /// **选中不拉蒙版**（2026-11-18 用户口径）：以前是在整张卡上盖 40% 的蓝，
+    /// 内容直接被染成一片，越选越看不清。现在只换**边**——蓝描边是“算出来的一圈线”，
+    /// 不是覆盖层，内容像素一点不动。
+    static let selectionStrokeWidth: CGFloat = 2
+    static let selectionGlowRadius: CGFloat = 5
+    /// 保留给极端调试用（0 = 不盖任何颜色，别再往回调）。
+    static let selectionFillOpacity: CGFloat = 0
     static let hoverAnimation = Animation.snappy(duration: 0.175)
 
     /// [A-3] 悬停**停留延迟**：鼠标扫过时不能立即高亮/出按钮，
@@ -94,12 +119,5 @@ enum StationMetrics {
     static let verticalCard = CGSize(width: 156, height: 208)     // 3:4 竖版（左/右）
 
     /// 内容井 = 卡内扣掉头部 18pt、Info 行与内边距后的可用区，比例**跟随卡本身**。
-    /// 所以这里不需要写死比例，只写填充策略的容差。
-    ///
-    /// [A-1] 填充策略（社交软件那套，2026-11-18 修）：
-    /// - 图与井比例差 ≤ `contentCoverTolerance` → **cover 填满**（裁一点点，视觉最满）；
-    /// - 超出 → **模糊底 + 完整前景**：底层用同一张图放大模糊铺满整个井，
-    ///   前景按比例完整放下。井 100% 被画面占满（不再是灰条+小图），
-    ///   内容也一张不裁——「看得清」和「看得全」两个都要。
-    static let contentCoverTolerance: CGFloat = 0.25
+    /// 填充方式见 `ContentWellFill`（一律 cover，2026-11-18 定案）。
 }
